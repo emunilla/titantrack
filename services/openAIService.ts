@@ -7,7 +7,12 @@ if (!apiKey && import.meta.env.DEV) {
   console.warn('⚠️ VITE_OPENAI_API_KEY no configurada. Las funciones de OpenAI no funcionarán.');
 }
 
-const openai = apiKey ? new OpenAI({ apiKey }) : null;
+// ⚠️ ADVERTENCIA: Usar OpenAI en el navegador expone la API key en el bundle.
+// En producción, considera usar un backend proxy para mayor seguridad.
+const openai = apiKey ? new OpenAI({ 
+  apiKey,
+  dangerouslyAllowBrowser: true // Permitir uso en navegador (con advertencia de seguridad)
+}) : null;
 
 export const analyzeWorkouts = async (data: AppData) => {
   if (!openai) {

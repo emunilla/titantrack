@@ -1,6 +1,4 @@
 import { AppData, SportType } from '../types';
-import { analyzeWorkouts as geminiAnalyze, generateTrainingPlan as geminiGenerate } from './geminiService';
-import { analyzeWorkouts as openAIAnalyze, generateTrainingPlan as openAIGenerate } from './openAIService';
 
 export type AIProvider = 'gemini' | 'openai' | 'auto';
 
@@ -9,44 +7,37 @@ interface AIConfig {
   fallbackEnabled: boolean;
 }
 
-// Estrategia inteligente: Gemini para análisis (más rápido), OpenAI para generación creativa
-const getBestProvider = (task: 'analyze' | 'generate', config: AIConfig): 'gemini' | 'openai' => {
-  if (config.preferredProvider === 'auto') {
-    // Auto-selección: Gemini para análisis, OpenAI para planes creativos
-    return task === 'analyze' ? 'gemini' : 'openai';
-  }
-  return config.preferredProvider === 'openai' ? 'openai' : 'gemini';
+// Usar el endpoint del backend (API keys seguras en el servidor)
+const getApiUrl = () => {
+  // En producción, usar la misma URL (Vercel maneja las rutas /api automáticamente)
+  // En desarrollo, Vite proxy redirige /api a las funciones serverless
+  return window.location.origin;
 };
 
 export const analyzeWorkouts = async (
   data: AppData, 
   config: AIConfig = { preferredProvider: 'auto', fallbackEnabled: true }
 ) => {
-  const provider = getBestProvider('analyze', config);
-  
   try {
-    if (provider === 'gemini') {
-      return await geminiAnalyze(data);
-    } else {
-      return await openAIAnalyze(data);
+    const response = await fetch(`${getApiUrl()}/api/analyze-workouts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        data,
+        preferredProvider: config.preferredProvider
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al analizar entrenamientos');
     }
-  } catch (error) {
-    // Fallback automático si está habilitado
-    if (config.fallbackEnabled && provider === 'gemini') {
-      console.warn('⚠️ Gemini falló, intentando con OpenAI...');
-      try {
-        return await openAIAnalyze(data);
-      } catch (fallbackError) {
-        throw new Error('Ambas IAs fallaron. Verifica tus API keys.');
-      }
-    } else if (config.fallbackEnabled && provider === 'openai') {
-      console.warn('⚠️ OpenAI falló, intentando con Gemini...');
-      try {
-        return await geminiAnalyze(data);
-      } catch (fallbackError) {
-        throw new Error('Ambas IAs fallaron. Verifica tus API keys.');
-      }
-    }
+
+    return await response.json();
+  } catch (error: any) {
+    console.error('Error analyzing workouts:', error);
     throw error;
   }
 };
@@ -63,31 +54,27 @@ export const generateTrainingPlan = async (
   profile: any,
   config: AIConfig = { preferredProvider: 'auto', fallbackEnabled: true }
 ) => {
-  const provider = getBestProvider('generate', config);
-  
   try {
-    if (provider === 'gemini') {
-      return await geminiGenerate(params, profile);
-    } else {
-      return await openAIGenerate(params, profile);
+    const response = await fetch(`${getApiUrl()}/api/generate-plan`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        params,
+        profile,
+        preferredProvider: config.preferredProvider
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al generar plan de entrenamiento');
     }
-  } catch (error) {
-    // Fallback automático si está habilitado
-    if (config.fallbackEnabled && provider === 'gemini') {
-      console.warn('⚠️ Gemini falló, intentando con OpenAI...');
-      try {
-        return await openAIGenerate(params, profile);
-      } catch (fallbackError) {
-        throw new Error('Ambas IAs fallaron. Verifica tus API keys.');
-      }
-    } else if (config.fallbackEnabled && provider === 'openai') {
-      console.warn('⚠️ OpenAI falló, intentando con Gemini...');
-      try {
-        return await geminiGenerate(params, profile);
-      } catch (fallbackError) {
-        throw new Error('Ambas IAs fallaron. Verifica tus API keys.');
-      }
-    }
+
+    return await response.json();
+  } catch (error: any) {
+    console.error('Error generating training plan:', error);
     throw error;
   }
 };
