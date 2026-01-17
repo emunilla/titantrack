@@ -1,368 +1,471 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { AppData, SportType, Workout, WeightEntry, UserProfile, UserAccount } from './types';
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { AppData, SportType, Workout, UserProfile } from './types';
 import Dashboard from './components/Dashboard';
 import WorkoutLogger from './components/WorkoutLogger';
 import AICoach from './components/AICoach';
 import ProfileSetup from './components/ProfileSetup';
-import Login from './components/Login';
-import { LayoutDashboard, PlusCircle, Sparkles, User, History, Filter, X, Pencil, Ruler, Activity, Target, LogOut, Download, Upload, ShieldCheck } from 'lucide-react';
-
-const ACCOUNTS_STORAGE_KEY = 'titan_track_accounts';
-const DATA_PREFIX = 'titan_track_data_';
+import AuthForm from './components/AuthForm';
+import { db, supabase } from './services/supabaseClient';
+import { 
+  LayoutDashboard, PlusCircle, Sparkles, User, History, 
+  Activity, Target, LogOut, Loader2, CalendarDays, Trash2, Settings,
+  Scale, Moon, Sun, Monitor, Ruler, Users
+} from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'dashboard' | 'log' | 'ai' | 'profile' | 'history'>('dashboard');
-  const [users, setUsers] = useState<UserAccount[]>([]);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [session, setSession] = useState<any>(null);
   const [data, setData] = useState<AppData | null>(null);
-  const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
-  
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFetchingData, setIsFetchingData] = useState(false);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
   const [filterType, setFilterType] = useState<SportType | 'all'>('all');
-  const [filterDate, setFilterDate] = useState<string>('');
-  
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const savedAccounts = localStorage.getItem(ACCOUNTS_STORAGE_KEY);
-    if (savedAccounts) {
-      setUsers(JSON.parse(savedAccounts));
-    }
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) {
+        setData(null);
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (currentUserId) {
-      const savedData = localStorage.getItem(`${DATA_PREFIX}${currentUserId}`);
-      if (savedData) {
-        setData(JSON.parse(savedData));
+    const savedTheme = localStorage.getItem('titan-theme') as 'dark' | 'light';
+    if (savedTheme) setTheme(savedTheme);
+  }, []);
+
+  useEffect(() => {
+    if (theme === 'light') {
+      document.body.classList.add('theme-traditional');
+    } else {
+      document.body.classList.remove('theme-traditional');
+    }
+    localStorage.setItem('titan-theme', theme);
+  }, [theme]);
+
+  const loadAllUserData = async () => {
+    if (!session) return;
+    setIsFetchingData(true);
+    try {
+      const profile = await db.profiles.getMyProfile();
+      if (!profile) {
+        setData(null);
+        return;
       }
-    } else {
-      setData(null);
+      const [workouts, weightHistory] = await Promise.all([
+        db.workouts.getMyWorkouts(),
+        db.weightHistory.getMyHistory()
+      ]);
+
+      setData({
+        profile: {
+          id: profile.id,
+          name: profile.name,
+          goal: profile.goal,
+          initialWeight: profile.initial_weight,
+          height: profile.height,
+          restingHeartRate: profile.resting_heart_rate,
+          avatarColor: profile.avatar_color
+        },
+        workouts: workouts.map(w => ({
+          id: w.id,
+          date: w.date,
+          type: w.type as SportType,
+          strengthData: w.strength_data,
+          cardioData: w.cardio_data,
+          groupClassData: w.group_class_data,
+          notes: w.notes
+        })),
+        weightHistory: weightHistory
+      });
+    } catch (err) {
+      console.error("Error cargando datos:", err);
+    } finally {
+      setIsFetchingData(false);
     }
-  }, [currentUserId]);
+  };
 
-  const saveData = (newData: AppData) => {
-    setData(newData);
-    localStorage.setItem(`${DATA_PREFIX}${newData.profile.id}`, JSON.stringify(newData));
-    
-    const accountExists = users.some(u => u.id === newData.profile.id);
-    if (!accountExists) {
-      const newAccount = { id: newData.profile.id, name: newData.profile.name, avatarColor: newData.profile.avatarColor };
-      const updatedUsers = [...users, newAccount];
-      setUsers(updatedUsers);
-      localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(updatedUsers));
+  useEffect(() => {
+    if (session) {
+      loadAllUserData();
+    }
+  }, [session]);
+
+  const handleSaveWorkout = async (workout: Workout) => {
+    setIsFetchingData(true);
+    try {
+      const isNew = workout.id.length < 15;
+      const dbWorkout = {
+        id: isNew ? undefined : workout.id,
+        date: workout.date,
+        type: workout.type,
+        strength_data: workout.strengthData,
+        cardio_data: workout.cardioData,
+        group_class_data: workout.groupClassData,
+        notes: workout.notes
+      };
+
+      await db.workouts.save(dbWorkout);
+      await loadAllUserData();
+      setEditingWorkout(null);
+      setActiveTab('history');
+    } catch (err) {
+      alert("Error al guardar la sesión.");
+    } finally {
+      setIsFetchingData(false);
     }
   };
 
-  const handleProfileSubmit = (profile: UserProfile) => {
-    const initialData: AppData = {
-      profile,
-      workouts: [],
-      weightHistory: [{ date: new Date().toISOString().split('T')[0], weight: profile.initialWeight }]
-    };
-    saveData(initialData);
-    setCurrentUserId(profile.id);
-    setIsCreatingNew(false);
-  };
-
-  const handleSaveWorkout = (workout: Workout) => {
-    if (!data) return;
-    let newWorkouts;
-    const exists = data.workouts.some(w => w.id === workout.id);
+  const handleDeleteWorkout = async (workoutId: string) => {
+    if (!workoutId) return;
+    if (!confirm('¿CONFIRMAR ELIMINACIÓN PERMANENTE DE ESTA SESIÓN?')) return;
     
-    if (exists) {
-      newWorkouts = data.workouts.map(w => w.id === workout.id ? workout : w);
-    } else {
-      newWorkouts = [workout, ...data.workouts];
+    setDeletingId(workoutId);
+    
+    try {
+      await db.workouts.delete(workoutId);
+      if (data) {
+        setData(prev => prev ? ({
+          ...prev,
+          workouts: prev.workouts.filter(w => w.id !== workoutId)
+        }) : null);
+      }
+    } catch (err) {
+      console.error("Error crítico al borrar de la DB:", err);
+      alert("Error de sincronización: No se pudo eliminar la sesión.");
+      await loadAllUserData();
+    } finally {
+      setDeletingId(null);
     }
-    
-    const newData = { ...data, workouts: newWorkouts };
-    saveData(newData);
-    setEditingWorkout(null);
-    setActiveTab('dashboard');
   };
 
-  const addWeight = (entry: WeightEntry) => {
-    if (!data) return;
-    const newData = { ...data, weightHistory: [...data.weightHistory, entry] };
-    saveData(newData);
+  const handleUpdateProfile = async (profileData: UserProfile) => {
+    setIsFetchingData(true);
+    try {
+      await db.profiles.update(profileData);
+      await loadAllUserData();
+      setIsEditingProfile(false);
+    } catch (err) {
+      alert("Error al actualizar perfil.");
+    } finally {
+      setIsFetchingData(false);
+    }
   };
 
-  const startEdit = (workout: Workout) => {
-    setEditingWorkout(workout);
-    setActiveTab('log');
-  };
-
-  const logout = () => {
-    setCurrentUserId(null);
+  const logout = async () => {
+    await db.auth.signOut();
+    setSession(null);
     setData(null);
-    setActiveTab('dashboard');
   };
 
-  const handleExportData = () => {
-    if (!data) return;
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `titantrack_backup_${data.profile.name.toLowerCase().replace(/\s/g, '_')}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-  };
+  const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
-  const handleImportData = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const importedData = JSON.parse(event.target?.result as string) as AppData;
-        if (importedData.profile && importedData.workouts) {
-          saveData(importedData);
-          alert('Datos importados correctamente. Tu historial ha sido actualizado.');
-        } else {
-          alert('El archivo no tiene el formato correcto de TitanTrack.');
-        }
-      } catch (err) {
-        alert('Error al leer el archivo. Asegúrate de que es un archivo JSON válido.');
-      }
-    };
-    reader.readAsText(file);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
-  const filteredWorkouts = useMemo(() => {
-    if (!data) return [];
-    return data.workouts.filter(w => {
+  const workoutsGroupedByDate = useMemo(() => {
+    if (!data) return {};
+    const filtered = data.workouts.filter(w => {
       const matchesType = filterType === 'all' || w.type === filterType;
-      const matchesDate = !filterDate || w.date.startsWith(filterDate);
-      return matchesType && matchesDate;
+      return matchesType;
     });
-  }, [data, filterType, filterDate]);
 
-  if (!currentUserId) {
-    if (isCreatingNew || users.length === 0) {
-      return (
-        <ProfileSetup 
-          onSubmit={handleProfileSubmit} 
-          showCancel={users.length > 0} 
-          onCancel={() => setIsCreatingNew(false)} 
-        />
-      );
-    }
-    return (
-      <Login 
-        users={users} 
-        onSelectUser={(id) => setCurrentUserId(id)} 
-        onCreateNew={() => setIsCreatingNew(true)} 
-      />
-    );
-  }
+    const groups: Record<string, Workout[]> = {};
+    filtered.forEach(w => {
+      const dateKey = new Date(w.date).toISOString().split('T')[0];
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(w);
+    });
+    return groups;
+  }, [data, filterType]);
 
-  if (!data) return <div className="p-10 text-center">Cargando datos del Titán...</div>;
+  const sortedDates = Object.keys(workoutsGroupedByDate).sort((a, b) => b.localeCompare(a));
+
+  if (isLoading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-cyan-400" size={48}/></div>;
+  if (!session) return <AuthForm onAuthSuccess={() => {}} />;
+  if (!data && isFetchingData) return <div className="h-screen flex items-center justify-center bg-black text-cyan-400 font-mono tracking-widest animate-pulse">INICIANDO TERMINAL...</div>;
+  if (!data) return <ProfileSetup onSubmit={async (p) => { await db.profiles.create(p); await loadAllUserData(); }} showCancel={false} />;
 
   return (
-    <div className="min-h-screen pb-20 md:pb-0 md:pl-64 bg-slate-50">
-      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-64 bg-white border-r border-slate-200 p-6 z-50">
-        <div className="flex items-center gap-2 mb-10">
-          <div className="p-2 rounded-lg shadow-sm" style={{ backgroundColor: data.profile.avatarColor }}>
-            <Sparkles className="text-white w-6 h-6" />
+    <div className="min-h-screen transition-colors duration-300">
+      <aside className="hidden md:flex flex-col fixed left-0 top-0 h-full w-64 sidebar-custom z-50">
+        <div className="p-6 flex items-center gap-3 border-b border-main">
+          <div className="w-8 h-8 bg-accent rounded flex items-center justify-center shadow-lg">
+            <Activity className="text-white" size={20} />
           </div>
-          <h1 className="text-xl font-bold text-slate-800">TitanTrack</h1>
+          <span className="font-black text-xl tracking-tighter text-bright uppercase italic">Titan<span className="accent-color">Builder</span></span>
         </div>
-        
-        <nav className="flex flex-col gap-2 flex-1">
-          <SidebarLink icon={<LayoutDashboard size={20}/>} label="Dashboard" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-          <SidebarLink icon={<PlusCircle size={20}/>} label="Registrar" active={activeTab === 'log'} onClick={() => { setEditingWorkout(null); setActiveTab('log'); }} />
-          <SidebarLink icon={<Sparkles size={20}/>} label="IA Coach" active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
-          <SidebarLink icon={<History size={20}/>} label="Historial" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
-          <SidebarLink icon={<User size={20}/>} label="Perfil" active={activeTab === 'profile'} onClick={() => setActiveTab('profile')} />
+
+        <nav className="flex-1 p-4 space-y-2 mt-4">
+          <p className="text-[10px] font-black text-dim tracking-[0.2em] mb-4 ml-4">OPERACIONES</p>
+          <SidebarLink icon={<LayoutDashboard size={18}/>} label="PANEL DE CONTROL" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
+          <SidebarLink icon={<PlusCircle size={18}/>} label="REGISTRAR SESIÓN" active={activeTab === 'log'} onClick={() => { setEditingWorkout(null); setActiveTab('log'); }} />
+          <SidebarLink icon={<History size={18}/>} label="HISTORIAL" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+          
+          <div className="pt-8">
+            <p className="text-[10px] font-black text-dim tracking-[0.2em] mb-4 ml-4">INTELIGENCIA</p>
+            <SidebarLink icon={<Sparkles size={18}/>} label="ANALISTA IA" active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
+          </div>
         </nav>
 
-        <button onClick={logout} className="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-400 hover:text-red-500 hover:bg-red-50 transition-all mt-auto">
-          <LogOut size={20} />
-          <span className="font-medium">Cerrar Sesión</span>
-        </button>
+        <div className="p-4 border-t border-main">
+          <button 
+            onClick={toggleTheme}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-slate-500/10 transition-all text-xs font-bold mb-4 border border-main"
+          >
+            {theme === 'dark' ? <Sun size={14} className="text-amber-400" /> : <Moon size={14} className="text-indigo-600" />}
+            <span className="text-bright uppercase tracking-widest">{theme === 'dark' ? 'Modo Tradicional' : 'Modo Élite'}</span>
+          </button>
+
+          <button onClick={() => setActiveTab('profile')} className="w-full flex items-center gap-3 mb-4 px-2 py-2 hover:bg-slate-500/10 rounded transition-all group">
+            <div className="w-8 h-8 rounded flex items-center justify-center text-white font-bold" style={{backgroundColor: data.profile.avatarColor}}>
+              {data.profile.name[0]}
+            </div>
+            <div className="overflow-hidden text-left">
+              <p className="text-xs font-bold text-bright truncate group-hover:accent-color">{data.profile.name}</p>
+              <p className="text-[10px] text-dim truncate uppercase tracking-tighter">PERFIL TITÁN</p>
+            </div>
+          </button>
+          <button onClick={logout} className="w-full flex items-center gap-2 px-3 py-2 text-xs font-bold text-dim hover:text-red-500 transition-all uppercase tracking-widest">
+            <LogOut size={14} /> CERRAR SESIÓN
+          </button>
+        </div>
       </aside>
 
-      <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="flex items-center gap-2">
-          <div className="p-1.5 rounded-lg" style={{ backgroundColor: data.profile.avatarColor }}>
-            <Sparkles className="text-white w-5 h-5" />
-          </div>
-          <h1 className="text-lg font-bold text-slate-800">TitanTrack</h1>
-        </div>
+      <header className="md:hidden flex items-center justify-between p-4 panel-custom sticky top-0 z-50">
+        <h1 className="font-black tracking-tighter text-bright italic uppercase">Titan<span className="accent-color">Builder</span></h1>
         <div className="flex gap-2">
-          <button onClick={logout} className="p-2 text-slate-400 hover:text-red-500">
-            <LogOut size={20} />
-          </button>
-          <button onClick={() => setActiveTab('profile')} className="p-2 bg-slate-100 rounded-full">
-            <User size={20} className="text-slate-600" />
-          </button>
+           <button onClick={toggleTheme} className="p-2 border border-main rounded-lg text-bright">
+             {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+           </button>
+           <button onClick={() => setActiveTab('profile')} className="w-10 h-10 rounded-lg panel-custom flex items-center justify-center accent-color shadow-sm"><User size={20}/></button>
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto p-4 md:p-10">
-        {activeTab === 'dashboard' && <Dashboard data={data} onAddWeight={addWeight} onViewHistory={() => setActiveTab('history')} />}
-        {activeTab === 'log' && <WorkoutLogger onSave={handleSaveWorkout} editWorkout={editingWorkout} onCancel={() => { setEditingWorkout(null); setActiveTab('history'); }} />}
+      <main className="md:ml-64 p-4 md:p-8 animate-fade-in pb-24 md:pb-8">
+        {activeTab === 'dashboard' && (
+          <Dashboard 
+            data={data} 
+            onAddWeight={async (e) => { await db.weightHistory.add(e); loadAllUserData(); }} 
+            onViewHistory={() => setActiveTab('history')} 
+          />
+        )}
+        
+        {activeTab === 'log' && <WorkoutLogger onSave={handleSaveWorkout} editWorkout={editingWorkout} onCancel={() => setActiveTab('history')} />}
         {activeTab === 'ai' && <AICoach data={data} />}
         
         {activeTab === 'history' && (
           <div className="space-y-6">
-             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-               <h2 className="text-2xl font-bold">Historial de Entrenamientos</h2>
-               <div className="flex flex-wrap items-center gap-2">
-                 <div className="relative flex-1 md:flex-none">
-                   <select value={filterType} onChange={(e) => setFilterType(e.target.value as any)} className="w-full bg-white border border-slate-200 text-sm px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500 appearance-none pr-8">
-                     <option value="all">Todos los deportes</option>
-                     {Object.values(SportType).map(t => <option key={t} value={t}>{t}</option>)}
-                   </select>
-                   <Filter size={14} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-                 </div>
-                 <div className="relative flex-1 md:flex-none">
-                   <input type="date" value={filterDate} onChange={(e) => setFilterDate(e.target.value)} className="w-full bg-white border border-slate-200 text-sm px-3 py-2 rounded-lg outline-none focus:ring-2 focus:ring-indigo-500" />
-                 </div>
-                 {(filterType !== 'all' || filterDate) && (
-                   <button onClick={() => { setFilterType('all'); setFilterDate(''); }} className="p-2 text-slate-400 hover:text-red-500 transition-colors"><X size={20} /></button>
-                 )}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 panel-custom p-6 rounded-xl">
+               <div>
+                <h2 className="text-xl font-black text-bright flex items-center gap-2 tracking-tight uppercase"><History className="accent-color" size={20} /> Registro de Actividad</h2>
+                <p className="text-xs text-dim mt-1 font-mono uppercase tracking-[0.2em]">Historial Operativo</p>
                </div>
-             </div>
+               <div className="flex gap-2">
+                 <select value={filterType} onChange={(e) => setFilterType(e.target.value as any)} className="bg-input-custom border border-main text-[10px] font-black px-4 py-2 rounded-lg text-bright outline-none focus:border-cyan-400 cursor-pointer uppercase">
+                   <option value="all">Todas las Actividades</option>
+                   <option value={SportType.Strength}>Fuerza</option>
+                   <option value={SportType.GroupClass}>Clases Colectivas</option>
+                   <option value={SportType.Running}>Carrera</option>
+                   <option value={SportType.Swimming}>Natación</option>
+                 </select>
+               </div>
+            </div>
 
-             {filteredWorkouts.length === 0 ? (
-               <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
-                 <History size={48} className="mx-auto text-slate-300 mb-4" />
-                 <p className="text-slate-500">No hay registros.</p>
-               </div>
-             ) : (
-               <div className="grid gap-4">
-                 {filteredWorkouts.map(w => (
-                   <div key={w.id} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm group">
-                     <div className="flex justify-between items-start mb-3">
-                       <div className="flex-1">
-                         <div className="flex items-center gap-2 mb-1">
-                           <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                             w.type === SportType.Strength ? 'bg-orange-100 text-orange-600' :
-                             w.type === SportType.Running ? 'bg-blue-100 text-blue-600' :
-                             w.type === SportType.Swimming ? 'bg-cyan-100 text-cyan-600' : 'bg-slate-100 text-slate-600'
-                           }`}>{w.type}</span>
-                           <span className="text-xs text-slate-400 font-medium">{new Date(w.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}</span>
-                         </div>
-                         <h4 className="font-bold text-slate-800">{new Date(w.date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</h4>
-                       </div>
-                       <button onClick={() => startEdit(w)} className="p-2 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><Pencil size={18} /></button>
-                     </div>
-                     <div className="space-y-2">
-                       {w.strengthData && (
-                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                           {w.strengthData.map((s, i) => (
-                             <div key={i} className="text-sm bg-slate-50 p-2 rounded-lg border border-slate-100"><span className="font-semibold text-slate-700">{s.exercise}:</span> {s.sets}x{s.reps} <span className="text-slate-400">@</span> {s.weight}kg</div>
-                           ))}
-                         </div>
-                       )}
-                       {w.cardioData && (
-                         <div className="flex gap-4 text-sm bg-slate-50 p-3 rounded-lg border border-slate-100">
-                           <div><span className="text-slate-400">Distancia:</span> <span className="font-bold">{w.cardioData.distance} {w.type === SportType.Swimming ? 'm' : 'km'}</span></div>
-                           <div><span className="text-slate-400">Tiempo:</span> <span className="font-bold">{w.cardioData.timeMinutes} min</span></div>
-                         </div>
-                       )}
-                       {w.notes && <p className="text-xs text-slate-500 italic mt-2 border-t border-slate-50 pt-2">"{w.notes}"</p>}
-                     </div>
-                   </div>
-                 ))}
-               </div>
-             )}
+            <div className="space-y-4">
+              {sortedDates.map(dateKey => (
+                <div key={dateKey} className="space-y-2">
+                  <div className="bg-slate-500/10 px-4 py-2 border-l-4 border-main accent-color flex items-center gap-2">
+                    <CalendarDays size={14} className="accent-color" />
+                    <span className="text-[10px] font-black uppercase tracking-widest text-dim">{new Date(dateKey + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}</span>
+                  </div>
+                  {workoutsGroupedByDate[dateKey].map(w => (
+                    <div key={w.id} className="panel-custom p-4 rounded-xl hover:border-accent transition-all flex flex-col md:flex-row gap-4 items-start md:items-center justify-between group">
+                      <div className="flex items-center gap-4 min-w-[200px]">
+                        <div className={`w-12 h-12 rounded-xl border flex items-center justify-center ${
+                          w.type === SportType.Strength ? 'border-orange-500/50 text-orange-500' : 
+                          w.type === SportType.GroupClass ? 'border-indigo-500/50 text-indigo-500' : 'accent-color border-main'
+                        }`}>
+                          {w.type === SportType.GroupClass ? <Users size={24} /> : <Activity size={24} />}
+                        </div>
+                        <div>
+                          <p className="text-sm font-black text-bright tracking-tight uppercase">
+                            {w.type === SportType.Strength ? 'Fuerza' : 
+                             w.type === SportType.GroupClass ? 'Clase Colectiva' : 
+                             w.type === SportType.Running ? 'Carrera' : 'Natación'}
+                          </p>
+                          <p className="text-[9px] font-mono text-dim uppercase">{new Date(w.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex-1">
+                        {w.type === SportType.Strength && w.strengthData && (
+                          <div className="flex flex-wrap gap-2">
+                            {w.strengthData.map((s, idx) => (
+                              <div key={idx} className={`bg-slate-500/5 border px-3 py-2 rounded-lg flex flex-col gap-1 ${s.isBiSet ? 'border-indigo-500/30' : 'border-main'}`}>
+                                <div className="flex flex-col gap-1">
+                                  <div className="flex items-center justify-between gap-6">
+                                    <span className="text-[10px] font-bold text-bright uppercase tracking-tighter">{s.exercise}</span>
+                                    <span className="text-[10px] font-black accent-color">{s.sets}x{s.reps} @ {s.weight}kg</span>
+                                  </div>
+                                  {s.isBiSet && (
+                                    <div className="border-t border-main pt-1 mt-1 flex items-center justify-between gap-6">
+                                      <span className="text-[10px] font-bold text-orange-500 uppercase tracking-tighter">{s.exercise2}</span>
+                                      <span className="text-[10px] font-black text-orange-500">{s.sets2}x{s.reps2} @ {s.weight2}kg</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {w.type === SportType.GroupClass && w.groupClassData && (
+                           <div className="flex gap-4">
+                             <div className="text-center bg-slate-500/5 border border-indigo-500/30 px-4 py-2 rounded-lg min-w-[120px]">
+                               <p className="text-[8px] text-dim uppercase font-black tracking-widest mb-1">Disciplina</p>
+                               <p className="text-xs font-black text-indigo-500 uppercase">{w.groupClassData.classType}</p>
+                             </div>
+                             <div className="text-center bg-slate-500/5 border border-main px-4 py-2 rounded-lg min-w-[100px]">
+                               <p className="text-[8px] text-dim uppercase font-black tracking-widest mb-1">Duración</p>
+                               <p className="text-xs font-black accent-color">{w.groupClassData.timeMinutes} min</p>
+                             </div>
+                             {w.groupClassData.avgHeartRate && (
+                               <div className="text-center bg-slate-500/5 border border-main px-4 py-2 rounded-lg min-w-[100px]">
+                                 <p className="text-[8px] text-dim uppercase font-black tracking-widest mb-1">Pulsaciones</p>
+                                 <p className="text-xs font-black text-rose-500">{w.groupClassData.avgHeartRate} bpm</p>
+                               </div>
+                             )}
+                           </div>
+                        )}
+
+                        {(w.type === SportType.Running || w.type === SportType.Swimming) && (
+                          <div className="flex gap-4">
+                             <div className="text-center bg-slate-500/5 border border-main px-4 py-2 rounded-lg min-w-[100px]">
+                               <p className="text-[8px] text-dim uppercase font-black tracking-widest mb-1">Distancia</p>
+                               <p className="text-xs font-black accent-color">{w.cardioData?.distance} {w.type === SportType.Swimming ? 'm' : 'km'}</p>
+                             </div>
+                             <div className="text-center bg-slate-500/5 border border-main px-4 py-2 rounded-lg min-w-[100px]">
+                               <p className="text-[8px] text-dim uppercase font-black tracking-widest mb-1">Duración</p>
+                               <p className="text-xs font-black accent-color">{w.cardioData?.timeMinutes} min</p>
+                             </div>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button 
+                          onClick={() => { setEditingWorkout(w); setActiveTab('log'); }} 
+                          className="p-3 panel-custom hover:border-accent accent-color rounded-xl transition-all shadow-sm"
+                          title="Editar sesión"
+                        >
+                          <Settings size={18}/>
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteWorkout(w.id)} 
+                          disabled={deletingId === w.id}
+                          className={`p-3 panel-custom border-red-500/20 hover:border-red-500 text-red-500 rounded-xl transition-all shadow-sm flex items-center justify-center ${deletingId === w.id ? 'opacity-50' : ''}`}
+                          title="Eliminar sesión"
+                        >
+                          {deletingId === w.id ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18}/>}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
         {activeTab === 'profile' && (
-          <div className="space-y-6">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-              <div className="h-24 -mx-6 -mt-6 mb-12 flex items-end px-6 pb-4" style={{ backgroundColor: data.profile.avatarColor }}>
-                <div className="bg-white p-4 rounded-3xl shadow-lg translate-y-8 border-4 border-white">
-                  <User size={40} style={{ color: data.profile.avatarColor }} />
+          <div className="max-w-2xl mx-auto space-y-6">
+            {isEditingProfile ? (
+              <ProfileSetup 
+                initialData={data.profile} 
+                onSubmit={handleUpdateProfile} 
+                onCancel={() => setIsEditingProfile(false)} 
+                showCancel={true} 
+              />
+            ) : (
+              <div className="panel-custom rounded-2xl overflow-hidden">
+                <div className="h-2 w-full bg-accent"></div>
+                <div className="p-8">
+                    <div className="flex justify-between items-start mb-10">
+                      <div className="flex items-center gap-6">
+                        <div className="w-24 h-24 border-4 border-main rounded-2xl flex items-center justify-center text-white font-black text-4xl shadow-xl" style={{backgroundColor: data.profile.avatarColor}}>
+                          {data.profile.name[0]}
+                        </div>
+                        <div>
+                          <h2 className="text-4xl font-black text-bright uppercase italic tracking-tighter">{data.profile.name}</h2>
+                          <div className="flex items-center gap-2 mt-1">
+                             <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
+                             <p className="text-[10px] font-mono text-dim uppercase tracking-widest">ESTADO: LISTO PARA ENTRENAR</p>
+                          </div>
+                        </div>
+                      </div>
+                      <button onClick={() => setIsEditingProfile(true)} className="p-4 panel-custom hover:border-accent accent-color transition-all rounded-xl">
+                        <Settings size={22} />
+                      </button>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <ProfileValue label="Misión Principal" value={data.profile.goal} icon={<Target size={14}/>} />
+                      <ProfileValue label="Estatura" value={`${data.profile.height} cm`} icon={<Ruler size={14}/>} />
+                      <ProfileValue label="FCR" value={`${data.profile.restingHeartRate} ppm`} icon={<Activity size={14}/>} />
+                      <ProfileValue label="Peso Inicial" value={`${data.profile.initialWeight} kg`} icon={<Scale size={14}/>} />
+                    </div>
+
+                    <div className="mt-12 flex gap-4">
+                      <button onClick={logout} className="flex-1 panel-custom border-red-500/30 text-red-500 font-black py-4 rounded-xl text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-white transition-all uppercase">DESCONECTAR TERMINAL</button>
+                    </div>
                 </div>
               </div>
-              
-              <div className="pt-2">
-                <h2 className="text-3xl font-black text-slate-800">{data.profile.name}</h2>
-                <p className="text-slate-400 font-medium">Atleta Titan</p>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-8">
-                 <ProfileItem icon={<Target className="text-orange-500"/>} label="Objetivo" value={data.profile.goal} />
-                 <ProfileItem icon={<Ruler className="text-blue-500"/>} label="Altura" value={`${data.profile.height} cm`} />
-                 <ProfileItem icon={<Activity className="text-emerald-500"/>} label="FC Reposo" value={`${data.profile.restingHeartRate} ppm`} />
-                 <ProfileItem icon={<LayoutDashboard className="text-slate-500"/>} label="Peso Inicial" value={`${data.profile.initialWeight} kg`} />
-              </div>
-              
-              <div className="mt-8 pt-8 border-t border-slate-100">
-                <h3 className="font-bold text-slate-700 mb-4 flex items-center gap-2">
-                  <ShieldCheck size={18} className="text-indigo-600" /> Gestión de Datos
-                </h3>
-                <p className="text-sm text-slate-500 mb-6">Usa estas opciones para sincronizar tus entrenamientos entre diferentes dispositivos o guardar una copia de seguridad.</p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <button onClick={handleExportData} className="flex items-center justify-center gap-2 bg-indigo-50 text-indigo-700 font-bold py-3 px-4 rounded-2xl hover:bg-indigo-100 transition-all">
-                    <Download size={18} /> Exportar Backup (.json)
-                  </button>
-                  <div className="relative">
-                    <input type="file" ref={fileInputRef} onChange={handleImportData} accept=".json" className="hidden" />
-                    <button onClick={() => fileInputRef.current?.click()} className="w-full flex items-center justify-center gap-2 bg-slate-100 text-slate-700 font-bold py-3 px-4 rounded-2xl hover:bg-slate-200 transition-all">
-                      <Upload size={18} /> Importar Backup
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-10 pt-6 border-t border-slate-100 flex flex-col sm:flex-row gap-4">
-                <button onClick={logout} className="flex-1 bg-slate-50 text-slate-600 font-bold py-3 rounded-2xl hover:bg-slate-100 transition-all flex items-center justify-center gap-2">
-                  <LogOut size={18} /> Cambiar de Usuario
-                </button>
-                <button onClick={() => { if(confirm('¿Borrar TODOS tus entrenamientos y datos de perfil? Esta acción no se puede deshacer.')) { 
-                     localStorage.removeItem(`${DATA_PREFIX}${data.profile.id}`);
-                     const updated = users.filter(u => u.id !== data.profile.id);
-                     setUsers(updated);
-                     localStorage.setItem(ACCOUNTS_STORAGE_KEY, JSON.stringify(updated));
-                     logout();
-                   } }} className="flex-1 bg-red-50 text-red-500 font-bold py-3 rounded-2xl hover:bg-red-100 transition-all">
-                   Eliminar este Perfil
-                 </button>
-              </div>
-            </div>
+            )}
           </div>
         )}
       </main>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-6 py-3 flex justify-between items-center z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 panel-custom border-t border-main px-6 py-4 flex justify-between items-center z-50 backdrop-blur-xl bg-opacity-80">
         <NavButton icon={<LayoutDashboard />} active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
         <NavButton icon={<PlusCircle />} active={activeTab === 'log'} onClick={() => { setEditingWorkout(null); setActiveTab('log'); }} />
-        <NavButton icon={<Sparkles />} active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
         <NavButton icon={<History />} active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
+        <NavButton icon={<Sparkles />} active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
       </nav>
     </div>
   );
 };
 
-const ProfileItem: React.FC<{ icon: React.ReactNode, label: string, value: string }> = ({ icon, label, value }) => (
-  <div className="flex items-center gap-4 bg-slate-50 p-4 rounded-2xl border border-slate-100">
-    <div className="p-2 bg-white rounded-lg shadow-sm">{icon}</div>
-    <div>
-      <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">{label}</p>
-      <p className="font-bold text-slate-700 text-lg">{value}</p>
+const ProfileValue = ({ label, value, icon }: any) => (
+  <div className="panel-custom bg-slate-500/5 p-5 rounded-xl group hover:border-accent transition-all">
+    <div className="flex items-center gap-2 text-[9px] font-black text-dim uppercase tracking-widest mb-1 group-hover:accent-color transition-colors">
+      {icon} {label}
     </div>
+    <p className="text-xl font-black text-bright tracking-tighter uppercase truncate">{value}</p>
   </div>
 );
 
 const SidebarLink: React.FC<{ icon: React.ReactNode, label: string, active: boolean, onClick: () => void }> = ({ icon, label, active, onClick }) => (
-  <button onClick={onClick} className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 ${active ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-100' : 'text-slate-600 hover:bg-slate-50'}`}>
+  <button onClick={onClick} className={`w-full flex items-center gap-3 px-6 py-4 text-[11px] font-black tracking-[0.2em] transition-all rounded-xl ${active ? 'bg-accent text-white shadow-lg' : 'text-dim hover:text-bright hover:bg-slate-500/10'}`}>
     {icon}
-    <span className="font-medium">{label}</span>
+    <span>{label}</span>
   </button>
 );
 
 const NavButton: React.FC<{ icon: React.ReactNode, active: boolean, onClick: () => void }> = ({ icon, active, onClick }) => (
-  <button onClick={onClick} className={`p-2 rounded-xl transition-all ${active ? 'text-indigo-600 bg-indigo-50' : 'text-slate-400'}`}>
-    {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 24 }) : icon}
+  <button onClick={onClick} className={`transition-all p-2 rounded-xl ${active ? 'accent-color bg-slate-500/10 scale-110 shadow-sm' : 'text-dim'}`}>
+    {React.isValidElement(icon) ? React.cloneElement(icon as React.ReactElement<any>, { size: 28 }) : icon}
   </button>
 );
 

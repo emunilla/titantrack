@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import { AppData } from '../types';
 import { analyzeWorkouts } from '../services/geminiService';
-import { Sparkles, BrainCircuit, Target, Lightbulb, Quote, Loader2, Activity } from 'lucide-react';
+import { Sparkles, BrainCircuit, Target, Lightbulb, Quote, Loader2, Activity, Terminal } from 'lucide-react';
 
 interface Props {
   data: AppData;
@@ -17,7 +18,7 @@ const AICoach: React.FC<Props> = ({ data }) => {
       const result = await analyzeWorkouts(data);
       setAnalysis(result);
     } catch (error) {
-      alert("Error al contactar con la IA. Por favor, revisa tu API Key.");
+      alert("Error en el núcleo de análisis inteligente.");
     } finally {
       setLoading(false);
     }
@@ -25,34 +26,53 @@ const AICoach: React.FC<Props> = ({ data }) => {
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 p-8 rounded-3xl text-white shadow-xl relative overflow-hidden">
-        <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4"><BrainCircuit size={32} /><h2 className="text-3xl font-bold">Titan Coach AI</h2></div>
-          <p className="text-indigo-100 mb-8 max-w-md">Analiza tus últimos 10 entrenamientos y evolución para recibir consejos personalizados.</p>
-          <button onClick={handleAnalyze} disabled={loading || data.workouts.length < 1} className="bg-white text-indigo-600 px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-lg disabled:opacity-50">
-            {loading ? <Loader2 className="animate-spin" /> : <Sparkles size={20} />}
-            {loading ? 'Analizando...' : 'Generar Reporte IA'}
+      <div className="bg-[#020617] border border-cyan-500/30 p-10 rounded shadow-[0_0_30px_rgba(6,182,212,0.1)] relative overflow-hidden group">
+        <div className="absolute top-0 right-0 p-4 font-mono text-[8px] text-cyan-400/30">NÚCLEO 3.1 ALPHA</div>
+        <div className="relative z-10 text-center max-w-xl mx-auto">
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <BrainCircuit size={48} className="text-cyan-400 animate-pulse" />
+            <h2 className="text-4xl font-black text-white tracking-tighter uppercase">Titan Core <span className="text-cyan-400">IA</span></h2>
+          </div>
+          <p className="text-xs text-slate-400 mb-10 tracking-widest leading-relaxed uppercase">Sistema de análisis biométrico profundo basado en redes neuronales.</p>
+          <button 
+            onClick={handleAnalyze} 
+            disabled={loading || data.workouts.length < 1} 
+            className="w-full bg-cyan-500 text-black font-black py-4 rounded text-xs tracking-[0.3em] shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:bg-cyan-400 transition-all uppercase flex items-center justify-center gap-3 disabled:opacity-30"
+          >
+            {loading ? <Loader2 className="animate-spin" /> : <Terminal size={18} />}
+            {loading ? 'Procesando Datos de Entrenamiento...' : 'Ejecutar Análisis Inteligente'}
           </button>
         </div>
       </div>
+
       {analysis && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm md:col-span-2">
-            <h3 className="text-xl font-bold flex items-center gap-2 mb-4 text-slate-800"><Target className="text-indigo-600" /> Resumen</h3>
-            <p className="text-slate-600 leading-relaxed text-lg">{analysis.summary}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
+          <div className="md:col-span-2 bg-black border border-[#1e293b] p-8 rounded">
+             <div className="flex items-center gap-3 mb-6">
+               <div className="w-1 h-6 bg-cyan-400"></div>
+               <h3 className="text-xs font-black text-white tracking-[0.2em] uppercase">Resumen de Inteligencia Ejecutiva</h3>
+             </div>
+             <p className="text-slate-400 leading-relaxed font-mono text-xs">{analysis.summary}</p>
           </div>
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-            <h3 className="text-xl font-bold flex items-center gap-2 mb-6 text-slate-800"><Lightbulb className="text-amber-500" /> Sugerencias</h3>
-            <ul className="space-y-4">
+          
+          <div className="bg-black border border-[#1e293b] p-6 rounded">
+            <h3 className="text-[10px] font-black text-amber-500 tracking-widest uppercase mb-6 flex items-center gap-2"><Lightbulb size={14}/> Sugerencias Estratégicas</h3>
+            <div className="space-y-3">
               {analysis.suggestions.map((s: string, i: number) => (
-                <li key={i} className="flex gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100"><span className="font-medium text-slate-700">{s}</span></li>
+                <div key={i} className="bg-[#020617] p-4 border border-[#1e293b] text-[10px] font-bold text-slate-300 uppercase tracking-tight flex items-center gap-3">
+                  <span className="text-cyan-400 font-mono">[{i+1}]</span> {s}
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
-          <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
-            <h3 className="text-xl font-bold flex items-center gap-2 mb-4 text-slate-800"><Activity className="text-emerald-500" /> Carga y Motivación</h3>
-            <p className="text-slate-600 bg-slate-50 p-4 rounded-2xl border border-slate-100 mb-6">{analysis.volumeAnalysis}</p>
-            <div className="italic text-slate-500 flex gap-3"><Quote className="text-indigo-300 shrink-0" /><p className="text-lg">"{analysis.motivationalQuote}"</p></div>
+
+          <div className="bg-black border border-[#1e293b] p-6 rounded">
+            <h3 className="text-[10px] font-black text-emerald-500 tracking-widest uppercase mb-6 flex items-center gap-2"><Activity size={14}/> Análisis de Volumen</h3>
+            <p className="text-slate-400 text-xs font-mono bg-[#020617] p-4 rounded mb-6 border border-[#1e293b]">{analysis.volumeAnalysis}</p>
+            <div className="border-t border-[#1e293b] pt-6 flex gap-4">
+              <Quote size={20} className="text-cyan-500/30 shrink-0" />
+              <p className="text-sm font-black italic text-white tracking-tight leading-snug">"{analysis.motivationalQuote}"</p>
+            </div>
           </div>
         </div>
       )}

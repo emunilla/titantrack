@@ -1,17 +1,83 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TitanTrack AI - Tu Entrenador Personal Inteligente</title>
+    <title>Titan Builder - Elite Training System</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
+        :root {
+          /* Tema Élite (Default) */
+          --bg-app: #000000;
+          --bg-side: #020617;
+          --bg-panel: #020617;
+          --bg-input: #0f172a; /* Azul muy oscuro para inputs */
+          --border: #1e293b;
+          --text-main: #94a3b8;
+          --text-bright: #ffffff;
+          --accent: #22d3ee;
+          --accent-hover: #67e8f9;
+          --shadow: 0 0 20px rgba(0,0,0,0.5);
+          --card-inner: rgba(255,255,255,0.03);
+        }
+
+        .theme-traditional {
+          /* Tema Tradicional (Vivos) */
+          --bg-app: #f1f5f9;
+          --bg-side: #ffffff;
+          --bg-panel: #ffffff;
+          --bg-input: #ffffff;
+          --border: #e2e8f0;
+          --text-main: #475569;
+          --text-bright: #0f172a;
+          --accent: #4f46e5;
+          --accent-hover: #4338ca;
+          --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+          --card-inner: #f8fafc;
+        }
+
+        body { 
+          font-family: 'Inter', sans-serif; 
+          background-color: var(--bg-app);
+          color: var(--text-main);
+          transition: background-color 0.3s ease, color 0.3s ease;
+          margin: 0;
+        }
+        
+        .panel-custom {
+            background-color: var(--bg-panel);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+        .sidebar-custom {
+            background-color: var(--bg-side);
+            border-right: 1px solid var(--border);
+        }
+
+        .bg-app-custom { background-color: var(--bg-app); }
+        .bg-input-custom { background-color: var(--bg-input); }
+        .text-bright { color: var(--text-bright); }
+        .text-dim { color: var(--text-main); }
+        .accent-color { color: var(--accent); }
+        .bg-accent { background-color: var(--accent); }
+        .border-main { border-color: var(--border); }
+        
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(5px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in { animation: fadeIn 0.2s ease-out forwards; }
+        
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--bg-app); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-main); }
+
+        input, select, textarea {
+            color: var(--text-bright);
         }
     </style>
 <script type="importmap">
@@ -19,6 +85,7 @@
   "imports": {
     "recharts": "https://esm.sh/recharts@^3.6.0",
     "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.48.1",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
     "react/": "https://esm.sh/react@^19.2.3/",
@@ -27,7 +94,7 @@
 }
 </script>
 </head>
-<body class="bg-slate-50 text-slate-900">
+<body class="bg-app-custom">
     <div id="root"></div>
 </body>
 </html>

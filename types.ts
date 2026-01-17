@@ -1,16 +1,23 @@
+
 export enum SportType {
   Strength = 'Strength',
   Running = 'Running',
   Swimming = 'Swimming',
   Cycling = 'Cycling',
+  GroupClass = 'GroupClass',
   Other = 'Other'
 }
 
 export interface StrengthSet {
   exercise: string;
-  reps: number;
   sets: number;
+  reps: number;
   weight: number;
+  isBiSet?: boolean;
+  exercise2?: string;
+  sets2?: number;
+  reps2?: number;
+  weight2?: number;
 }
 
 export interface CardioMetrics {
@@ -20,18 +27,28 @@ export interface CardioMetrics {
   pace?: string;
 }
 
+export interface GroupClassMetrics {
+  classType: string;
+  timeMinutes: number;
+  avgHeartRate?: number;
+}
+
 export interface Workout {
   id: string;
   date: string;
   type: SportType;
   strengthData?: StrengthSet[];
   cardioData?: CardioMetrics;
+  groupClassData?: GroupClassMetrics;
   notes?: string;
 }
 
 export interface WeightEntry {
+  id?: string;
   date: string;
   weight: number;
+  fatPercentage?: number;
+  musclePercentage?: number;
 }
 
 export interface UserProfile {

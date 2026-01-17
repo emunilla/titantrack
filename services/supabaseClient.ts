@@ -1,0 +1,140 @@
+
+import { createClient } from '@supabase/supabase-js';
+
+const supabaseUrl = 'https://arpuudrssqfjyijlphgi.supabase.co';
+const supabaseAnonKey = 'sb_publishable_HTyc2f8XGto085XjsIOHWg_zdE1paMY';
+
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+export const db = {
+  auth: {
+    async signUp(email: string, pass: string) {
+      const { data, error } = await supabase.auth.signUp({ email, password: pass });
+      if (error) throw error;
+      return data;
+    },
+    async signIn(email: string, pass: string) {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
+      if (error) throw error;
+      return data;
+    },
+    async signOut() {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+    }
+  },
+  profiles: {
+    async getMyProfile() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data;
+    },
+    async create(profile: any) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No autenticado");
+      const { data, error } = await supabase
+        .from('profiles')
+        .insert({ 
+          id: user.id,
+          name: profile.name,
+          goal: profile.goal,
+          initial_weight: profile.initialWeight,
+          height: profile.height,
+          resting_heart_rate: profile.restingHeartRate,
+          avatar_color: profile.avatarColor
+        })
+        .select().single();
+      if (error) throw error;
+      return data;
+    },
+    async update(profile: any) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No autenticado");
+      const { data, error } = await supabase
+        .from('profiles')
+        .update({ 
+          name: profile.name,
+          goal: profile.goal,
+          initial_weight: profile.initialWeight,
+          height: profile.height,
+          resting_heart_rate: profile.restingHeartRate,
+          avatar_color: profile.avatarColor
+        })
+        .eq('id', user.id)
+        .select().single();
+      if (error) throw error;
+      return data;
+    },
+    async delete() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from('profiles').delete().eq('id', user.id);
+      await supabase.auth.signOut();
+    }
+  },
+  workouts: {
+    async getMyWorkouts() {
+      const { data, error } = await supabase
+        .from('workouts')
+        .select('*')
+        .order('date', { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+    async save(workout: any) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No autenticado");
+      const { data, error } = await supabase
+        .from('workouts')
+        .upsert({ ...workout, profile_id: user.id })
+        .select().single();
+      if (error) throw error;
+      return data;
+    },
+    async delete(workoutId: string) {
+      const { error } = await supabase
+        .from('workouts')
+        .delete()
+        .eq('id', workoutId);
+      if (error) throw error;
+    }
+  },
+  weightHistory: {
+    async getMyHistory() {
+      const { data, error } = await supabase
+        .from('weight_history')
+        .select('*')
+        .order('date', { ascending: true });
+      if (error) throw error;
+      return data.map(d => ({
+        id: d.id,
+        date: d.date,
+        weight: d.weight,
+        fatPercentage: d.fat_percentage,
+        musclePercentage: d.muscle_percentage
+      }));
+    },
+    async add(entry: any) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No autenticado");
+      const { data, error } = await supabase
+        .from('weight_history')
+        .insert({ 
+          date: entry.date,
+          weight: entry.weight,
+          fat_percentage: entry.fatPercentage,
+          muscle_percentage: entry.musclePercentage,
+          profile_id: user.id 
+        })
+        .select().single();
+      if (error) throw error;
+      return data;
+    }
+  }
+};

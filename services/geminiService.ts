@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppData } from "../types";
 
@@ -13,6 +14,9 @@ export const analyzeWorkouts = async (data: AppData) => {
     Peso Actual: ${data.weightHistory[data.weightHistory.length - 1]?.weight || 'N/A'} kg
     Historial de entrenamientos (últimos 10): ${JSON.stringify(data.workouts.slice(-10))}
     Historial de peso: ${JSON.stringify(data.weightHistory.slice(-5))}
+
+    Considera que existen sesiones de Fuerza, Carrera, Natación y Clases Colectivas (Pilates, Yoga, Cross Fit, etc.).
+    Ajusta tus recomendaciones basándote en la combinación de estas modalidades.
 
     Por favor, proporciona un análisis detallado en formato JSON que incluya:
     1. Un resumen del progreso actual.
