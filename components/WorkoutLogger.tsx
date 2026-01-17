@@ -55,6 +55,36 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validación básica
+    if (type === SportType.Strength) {
+      const validSets = strengthSets.filter(s => s.exercise.trim() !== '');
+      if (validSets.length === 0) {
+        alert('Agrega al menos un ejercicio de fuerza');
+        return;
+      }
+      strengthSets.forEach((set, idx) => {
+        if (set.exercise.trim() && (set.sets <= 0 || set.reps <= 0 || set.weight < 0)) {
+          alert(`El ejercicio "${set.exercise}" tiene valores inválidos`);
+          return;
+        }
+      });
+    } else if (type === SportType.GroupClass) {
+      if (!time || parseFloat(time) <= 0) {
+        alert('La duración debe ser mayor a 0 minutos');
+        return;
+      }
+    } else {
+      if (!distance || parseFloat(distance) <= 0) {
+        alert('La distancia debe ser mayor a 0 km');
+        return;
+      }
+      if (!time || parseFloat(time) <= 0) {
+        alert('La duración debe ser mayor a 0 minutos');
+        return;
+      }
+    }
+
     const workout: Workout = { 
       id: editWorkout?.id || Math.random().toString(36).substr(2, 9), 
       date: new Date(date).toISOString(), type, notes, planId 

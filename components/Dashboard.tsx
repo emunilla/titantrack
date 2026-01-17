@@ -25,7 +25,18 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
 
   const handleEntrySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newEntry.weight) return;
+    if (!newEntry.weight || newEntry.weight <= 0) {
+      alert('El peso debe ser mayor a 0');
+      return;
+    }
+    if (newEntry.fatPercentage < 0 || newEntry.fatPercentage > 100) {
+      alert('El porcentaje de grasa debe estar entre 0 y 100');
+      return;
+    }
+    if (newEntry.musclePercentage < 0 || newEntry.musclePercentage > 100) {
+      alert('El porcentaje de músculo debe estar entre 0 y 100');
+      return;
+    }
     onAddWeight(newEntry);
     setShowBiometricsForm(false);
     setNewEntry({

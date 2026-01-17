@@ -1,8 +1,12 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = 'https://arpuudrssqfjyijlphgi.supabase.co';
-const supabaseAnonKey = 'sb_publishable_HTyc2f8XGto085XjsIOHWg_zdE1paMY';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://arpuudrssqfjyijlphgi.supabase.co';
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'sb_publishable_HTyc2f8XGto085XjsIOHWg_zdE1paMY';
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('⚠️ Variables de entorno de Supabase no configuradas. Usando valores por defecto.');
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 

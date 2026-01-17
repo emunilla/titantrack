@@ -7,6 +7,8 @@ import AICoach from './components/AICoach';
 import ProfileSetup from './components/ProfileSetup';
 import AuthForm from './components/AuthForm';
 import TrainingPlans from './components/TrainingPlans';
+import Toast from './components/Toast';
+import { useToast } from './hooks/useToast';
 import { db, supabase } from './services/supabaseClient';
 import { 
   LayoutDashboard, PlusCircle, Sparkles, User, History, 
@@ -27,6 +29,7 @@ const App: React.FC = () => {
   const [filterType, setFilterType] = useState<SportType | 'all'>('all');
   const [missingTables, setMissingTables] = useState<string[]>([]);
   const [expandedWorkouts, setExpandedWorkouts] = useState<Set<string>>(new Set());
+  const { toasts, removeToast, success, error: showError } = useToast();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -117,8 +120,9 @@ const App: React.FC = () => {
       await loadAllUserData();
       setEditingWorkout(null);
       setActiveTab('history');
-    } catch (err) {
-      alert("Error al guardar. Verifica la estructura de las tablas en Supabase.");
+      success(isNew ? 'Sesión registrada exitosamente' : 'Sesión actualizada');
+    } catch (err: any) {
+      showError(err.message || "Error al guardar. Verifica la estructura de las tablas en Supabase.");
     } finally { setIsFetchingData(false); }
   };
 
@@ -261,7 +265,7 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
 
           <div className="relative bg-black rounded-xl p-6 mb-8 border border-main group max-h-[250px] overflow-y-auto">
             <button 
-              onClick={() => { navigator.clipboard.writeText(SQL_SETUP); alert("¡SQL Copiado!"); }}
+              onClick={() => { navigator.clipboard.writeText(SQL_SETUP); success("SQL copiado al portapapeles"); }}
               className="sticky top-0 float-right p-3 bg-accent text-white rounded-xl shadow-xl z-20 hover:scale-105 transition-all"
               title="Copiar Script SQL"
             >
@@ -356,8 +360,8 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
             activePlans={data.plans.filter(p => p.status === 'active')}
           />
         )}
-        {activeTab === 'ai' && <AICoach data={data} />}
-        {activeTab === 'plans' && <TrainingPlans data={data} onSavePlan={async (p) => { await db.plans.save(p); await loadAllUserData(); setActiveTab('plans'); }} onDeletePlan={async (id) => { if(confirm('¿BORRAR ESTA MISIÓN?')){ await db.plans.delete(id); loadAllUserData(); }}} />}
+        {activeTab === 'ai' && <AICoach data={data} onError={showError} />}
+        {activeTab === 'plans' && <TrainingPlans data={data} onSavePlan={async (p) => { await db.plans.save(p); await loadAllUserData(); setActiveTab('plans'); success('Misión guardada exitosamente'); }} onDeletePlan={async (id) => { if(confirm('¿BORRAR ESTA MISIÓN?')){ await db.plans.delete(id); loadAllUserData(); success('Misión eliminada'); }}} onError={showError} />}
         {activeTab === 'history' && (
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 panel-custom p-6 rounded-xl">
@@ -413,7 +417,14 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
 
                              <div className="flex items-center gap-2">
                                 <button onClick={(e) => { e.stopPropagation(); setEditingWorkout(w); setActiveTab('log'); }} className="p-3 panel-custom accent-color rounded-xl hover:bg-slate-500/10 transition-all"><Settings size={18}/></button>
-                                <button onClick={(e) => { e.stopPropagation(); if(confirm('¿BORRAR?')) { db.workouts.delete(w.id).then(() => loadAllUserData()); }}} className="p-3 panel-custom text-red-500 rounded-xl hover:bg-red-500/10 transition-all"><Trash2 size={18}/></button>
+                                <button onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  if(confirm('¿BORRAR ESTA SESIÓN?')) { 
+                                    db.workouts.delete(w.id)
+                                      .then(() => { loadAllUserData(); success('Sesión eliminada'); })
+                                      .catch((err: any) => showError(err.message || 'Error al eliminar'));
+                                  }
+                                }} className="p-3 panel-custom text-red-500 rounded-xl hover:bg-red-500/10 transition-all"><Trash2 size={18}/></button>
                                 <div className="ml-2 text-dim">
                                   {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                                 </div>
@@ -558,6 +569,18 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
         <NavButton icon={<History />} active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
         <NavButton icon={<Sparkles />} active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
       </nav>
+
+      {/* Toast Notifications */}
+      <div className="fixed top-4 right-4 z-[100] space-y-2">
+        {toasts.map(toast => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            onClose={() => removeToast(toast.id)}
+          />
+        ))}
+      </div>
     </div>
   );
 };

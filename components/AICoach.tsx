@@ -6,9 +6,10 @@ import { Sparkles, BrainCircuit, Target, Lightbulb, Quote, Loader2, Activity, Te
 
 interface Props {
   data: AppData;
+  onError?: (message: string) => void;
 }
 
-const AICoach: React.FC<Props> = ({ data }) => {
+const AICoach: React.FC<Props> = ({ data, onError }) => {
   const [analysis, setAnalysis] = useState<any>(null);
   const [loading, setLoading] = useState(false);
 
@@ -17,8 +18,10 @@ const AICoach: React.FC<Props> = ({ data }) => {
     try {
       const result = await analyzeWorkouts(data);
       setAnalysis(result);
-    } catch (error) {
-      alert("Error en el núcleo de análisis inteligente.");
+    } catch (error: any) {
+      const message = error.message || "Error en el núcleo de análisis inteligente.";
+      if (onError) onError(message);
+      else alert(message);
     } finally {
       setLoading(false);
     }

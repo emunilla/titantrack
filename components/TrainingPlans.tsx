@@ -8,9 +8,10 @@ interface Props {
   data: AppData;
   onSavePlan: (plan: TrainingPlan) => void;
   onDeletePlan: (id: string) => void;
+  onError?: (message: string) => void;
 }
 
-const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan }) => {
+const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan, onError }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [tempPlan, setTempPlan] = useState<any>(null);
@@ -38,8 +39,10 @@ const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan }) => {
         content: result,
         createdAt: new Date().toISOString()
       });
-    } catch (error) {
-      alert("Error en el núcleo de generación táctica.");
+    } catch (error: any) {
+      const message = error.message || "Error en el núcleo de generación táctica.";
+      if (onError) onError(message);
+      else alert(message);
     } finally {
       setIsLoading(false);
     }

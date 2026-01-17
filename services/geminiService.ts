@@ -2,9 +2,19 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AppData, SportType } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+
+if (!apiKey) {
+  console.warn('⚠️ VITE_GEMINI_API_KEY no configurada. Las funciones de IA no funcionarán.');
+}
+
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 
 export const analyzeWorkouts = async (data: AppData) => {
+  if (!ai) {
+    throw new Error('API Key de Gemini no configurada. Configura VITE_GEMINI_API_KEY en tu archivo .env');
+  }
+
   const model = "gemini-3-flash-preview";
   
   const prompt = `
@@ -50,6 +60,10 @@ export const generateTrainingPlan = async (params: {
   timePerSession: number;
   equipment: string;
 }, profile: any) => {
+  if (!ai) {
+    throw new Error('API Key de Gemini no configurada. Configura VITE_GEMINI_API_KEY en tu archivo .env');
+  }
+
   const model = "gemini-3-flash-preview";
   
   const prompt = `
