@@ -12,6 +12,16 @@ interface Props {
 
 const GROUP_CLASSES = ["Total Body", "GAP", "Strength", "Dumbbells", "Pilates", "Yoga", "Cross Fit"];
 
+const COMMON_EXERCISES = [
+  "Sentadilla con Barra", "Sentadilla Búlgara", "Prensa de Piernas", "Extensiones de Cuádriceps", "Curl Femoral",
+  "Peso Muerto Convencional", "Peso Muerto Rumano", "Hip Thrust", "Zancadas (Lunges)",
+  "Press de Banca", "Press Inclinado con Mancuernas", "Aperturas (Flyes)", "Fondos (Dips)",
+  "Press Militar", "Elevaciones Laterales", "Face Pulls", "Pájaros (Rear Delt)",
+  "Dominadas", "Jalón al Pecho", "Remo con Barra", "Remo en Polea Baja", "Remo con Mancuerna",
+  "Curl de Bíceps con Barra", "Curl Martillo", "Press Francés", "Extensiones de Tríceps",
+  "Plancha Abdominal", "Rueda Abdominal", "Elevación de Piernas"
+];
+
 const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activePlans = [] }) => {
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [type, setType] = useState<SportType>(SportType.Strength);
@@ -81,6 +91,11 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
 
   return (
     <div className="max-w-4xl mx-auto panel-custom p-6 md:p-8 rounded-2xl animate-fade-in shadow-2xl">
+      {/* Lista de sugerencias global para los inputs */}
+      <datalist id="exercise-list">
+        {COMMON_EXERCISES.map(ex => <option key={ex} value={ex} />)}
+      </datalist>
+
       <div className="flex justify-between items-center mb-10 pb-4 border-b border-main">
         <div>
           <h2 className="text-xl font-black text-bright tracking-tighter uppercase">{editWorkout ? 'Ajustar Sesión' : 'Nueva Sesión Operativa'}</h2>
@@ -145,10 +160,11 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
                       </div>
                       <input 
                         type="text" 
+                        list="exercise-list"
                         value={set.exercise} 
                         onChange={(e) => updateSet(idx, { exercise: e.target.value })}
                         className="w-full bg-transparent border-b border-main text-xs font-bold text-bright outline-none py-2 uppercase focus:border-accent" 
-                        placeholder="NOMBRE DEL EJERCICIO..."
+                        placeholder="BUSCAR O ESCRIBIR EJERCICIO..."
                       />
                     </div>
                     <div className="flex gap-4">
@@ -168,10 +184,11 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
                         </label>
                         <input 
                           type="text" 
+                          list="exercise-list"
                           value={set.exercise2 || ''} 
                           onChange={(e) => updateSet(idx, { exercise2: e.target.value })}
                           className="w-full bg-transparent border-b border-indigo-500/30 text-xs font-bold text-bright outline-none py-2 uppercase focus:border-indigo-500" 
-                          placeholder="NOMBRE DEL SEGUNDO EJERCICIO..."
+                          placeholder="BUSCAR O ESCRIBIR SEGUNDO EJERCICIO..."
                         />
                       </div>
                       <div className="flex gap-4">
@@ -182,7 +199,7 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
                         <MiniInput label="Reps" value={set.reps2 || 0} onChange={(v: number) => updateSet(idx, { reps2: v })} />
                         <MiniInput label="KG" value={set.weight2 || 0} onChange={(v: number) => updateSet(idx, { weight2: v })} />
                       </div>
-                      <div className="w-[40px]"></div> {/* Spacer to align with Trash button above */}
+                      <div className="w-[40px]"></div>
                     </div>
                   )}
                 </div>
