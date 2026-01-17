@@ -50,6 +50,7 @@ export const generateTrainingPlan = async (
     schedule: string;
     timePerSession: number;
     equipment: string;
+    customPrompt?: string;
   },
   profile: any,
   config: AIConfig = { preferredProvider: 'auto', fallbackEnabled: true }

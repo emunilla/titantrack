@@ -24,16 +24,32 @@ const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan, onErro
     frequency: 4,
     schedule: 'Mañanas',
     timePerSession: 60,
-    equipment: 'Gimnasio completo'
+    equipment: 'Gimnasio completo',
+    customPrompt: ''
   });
 
   const handleGenerate = async () => {
     setIsLoading(true);
     try {
       const result = await generateTrainingPlan(formData, data.profile);
+      // Generar UUID válido para el ID (o dejar undefined para que Supabase lo genere)
+      const generateUUID = () => {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+          const r = Math.random() * 16 | 0;
+          const v = c === 'x' ? r : (r & 0x3 | 0x8);
+          return v.toString(16);
+        });
+      };
+      
+      // Crear el plan solo con los campos necesarios (sin customPrompt ni equipment)
       setTempPlan({
-        ...formData,
-        id: Math.random().toString(36).substr(2, 9),
+        id: generateUUID(),
+        name: formData.name,
+        type: formData.type,
+        objective: formData.objective,
+        frequency: formData.frequency,
+        schedule: formData.schedule,
+        timePerSession: formData.timePerSession,
         durationWeeks: result.durationWeeks,
         status: 'active',
         content: result,
@@ -104,6 +120,20 @@ const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan, onErro
                 <InputGroup label="Equipo Disponible" value={formData.equipment} onChange={v => setFormData({...formData, equipment: v})} />
               </div>
 
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-dim uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <Sparkles size={12} className="accent-color" />
+                  Instrucciones Adicionales (Opcional)
+                </label>
+                <textarea 
+                  value={formData.customPrompt}
+                  onChange={e => setFormData({...formData, customPrompt: e.target.value})}
+                  placeholder="Ej: Enfócate en ejercicios compuestos, incluye progresión semanal de carga, prioriza técnica sobre peso..."
+                  className="w-full bg-input-custom border border-main p-4 rounded-xl text-xs font-bold text-bright outline-none focus:border-accent min-h-[100px] resize-y placeholder:text-dim/50"
+                />
+                <p className="text-[9px] text-dim italic">Estas instrucciones se añadirán al prompt para personalizar aún más el plan generado.</p>
+              </div>
+
               <div className="flex gap-4 pt-6">
                 <button 
                   onClick={handleGenerate} 
@@ -126,7 +156,25 @@ const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan, onErro
                      <p className="text-[10px] text-accent font-black uppercase tracking-widest">Plan de {tempPlan.durationWeeks} Semanas Diseñado</p>
                    </div>
                 </div>
-                <button onClick={() => { onSavePlan(tempPlan); setIsCreating(false); setTempPlan(null); }} className="bg-emerald-500 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-400 transition-all shadow-lg"><Check size={18}/> Aceptar Misión</button>
+                <button onClick={() => { 
+                  // Limpiar el objeto antes de guardar (eliminar campos que no van a la BD)
+                  const planToSave: TrainingPlan = {
+                    id: tempPlan.id,
+                    name: tempPlan.name,
+                    type: tempPlan.type,
+                    objective: tempPlan.objective,
+                    frequency: tempPlan.frequency,
+                    durationWeeks: tempPlan.durationWeeks,
+                    schedule: tempPlan.schedule,
+                    timePerSession: tempPlan.timePerSession,
+                    status: tempPlan.status,
+                    content: tempPlan.content,
+                    createdAt: tempPlan.createdAt
+                  };
+                  onSavePlan(planToSave); 
+                  setIsCreating(false); 
+                  setTempPlan(null); 
+                }} className="bg-emerald-500 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-400 transition-all shadow-lg"><Check size={18}/> Aceptar Misión</button>
               </div>
               
               <div className="space-y-6">

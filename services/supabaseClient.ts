@@ -101,20 +101,32 @@ export const db = {
     async save(plan: any) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No autenticado");
+      
+      // Validar campos requeridos
+      if (!plan.name || !plan.type) {
+        throw new Error("Nombre y tipo de plan son requeridos");
+      }
+      
       const { data, error } = await supabase.from('training_plans').upsert({
-        id: plan.id,
+        id: plan.id || undefined, // Si no hay ID, Supabase lo generará
         profile_id: user.id,
         name: plan.name,
         type: plan.type,
-        objective: plan.objective,
-        frequency: plan.frequency,
-        duration_weeks: plan.durationWeeks,
-        schedule: plan.schedule,
-        time_per_session: plan.timePerSession,
-        status: plan.status,
-        content: plan.content
+        objective: plan.objective || null,
+        frequency: plan.frequency || null,
+        duration_weeks: plan.durationWeeks || null,
+        schedule: plan.schedule || null,
+        time_per_session: plan.timePerSession || null,
+        status: plan.status || 'active',
+        content: plan.content || {}
+      }, {
+        onConflict: 'id' // Si existe, actualizar
       }).select().single();
-      if (error) throw error;
+      
+      if (error) {
+        console.error('Error saving plan:', error);
+        throw new Error(error.message || 'Error al guardar el plan');
+      }
       return data;
     },
     async delete(planId: string) {

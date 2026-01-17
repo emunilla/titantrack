@@ -361,7 +361,16 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
           />
         )}
         {activeTab === 'ai' && <AICoach data={data} onError={showError} />}
-        {activeTab === 'plans' && <TrainingPlans data={data} onSavePlan={async (p) => { await db.plans.save(p); await loadAllUserData(); setActiveTab('plans'); success('Misión guardada exitosamente'); }} onDeletePlan={async (id) => { if(confirm('¿BORRAR ESTA MISIÓN?')){ await db.plans.delete(id); loadAllUserData(); success('Misión eliminada'); }}} onError={showError} />}
+        {activeTab === 'plans' && <TrainingPlans data={data} onSavePlan={async (p) => { 
+          try {
+            await db.plans.save(p); 
+            await loadAllUserData(); 
+            setActiveTab('plans'); 
+            success('Misión guardada exitosamente'); 
+          } catch (err: any) {
+            showError(err.message || 'Error al guardar la misión');
+          }
+        }} onDeletePlan={async (id) => { if(confirm('¿BORRAR ESTA MISIÓN?')){ await db.plans.delete(id); loadAllUserData(); success('Misión eliminada'); }}} onError={showError} />}
         {activeTab === 'history' && (
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 panel-custom p-6 rounded-xl">

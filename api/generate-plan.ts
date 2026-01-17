@@ -30,7 +30,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const openai = new OpenAI({ apiKey: openaiKey });
 
-        const prompt = `Como experto en ciencias del deporte, diseña una "Misión de Entrenamiento" (Plan) personalizada.
+        const prompt = `Como experto en ciencias del deporte y entrenador personal certificado, diseña una "Misión de Entrenamiento" (Plan) personalizada y profesional.
+
 ATLETA: ${profile.name}, Objetivo Global: ${profile.goal}.
 
 PARÁMETROS DEL PLAN:
@@ -41,7 +42,17 @@ PARÁMETROS DEL PLAN:
 - Duración sesión: ${params.timePerSession} min
 - Equipo disponible: ${params.equipment}
 
-Determina la duración óptima del plan (entre 4 y 12 semanas) según el objetivo.
+INSTRUCCIONES ESPECÍFICAS:
+- Crea un plan progresivo con periodización adecuada (adaptación → intensificación → pico)
+- Incluye ejercicios específicos y efectivos para el objetivo planteado
+- Considera días de descanso y recuperación activa
+- Adapta la intensidad y volumen según la experiencia del atleta
+- Incluye variaciones de ejercicios para evitar estancamiento
+- Proporciona descripciones detalladas de cada sesión
+- Asegura progresión semanal clara y medible
+${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES DEL USUARIO:\n${params.customPrompt}\n` : ''}
+
+Determina la duración óptima del plan (entre 4 y 12 semanas) según el objetivo y la complejidad requerida.
 Estructura la respuesta en un JSON detallado con este formato exacto:
 {
   "durationWeeks": número entre 4 y 12,
@@ -66,7 +77,7 @@ Estructura la respuesta en un JSON detallado con este formato exacto:
           messages: [
             { 
               role: 'system', 
-              content: 'Eres un experto en diseño de planes de entrenamiento personalizados. Crea planes detallados, progresivos y efectivos.' 
+              content: 'Eres un experto en ciencias del deporte, fisiología del ejercicio y diseño de planes de entrenamiento personalizados. Tienes certificaciones en entrenamiento personal y años de experiencia. Crea planes detallados, progresivos, seguros y altamente efectivos basados en evidencia científica.' 
             },
             { role: 'user', content: prompt }
           ],
@@ -87,7 +98,8 @@ Estructura la respuesta en un JSON detallado con este formato exacto:
         const model = "gemini-3-flash-preview";
         
         const prompt = `
-          Como experto en ciencias del deporte, diseña una "Misión de Entrenamiento" (Plan) personalizada.
+          Como experto en ciencias del deporte y entrenador personal certificado, diseña una "Misión de Entrenamiento" (Plan) personalizada y profesional.
+          
           ATLETA: ${profile.name}, Objetivo Global: ${profile.goal}.
           
           PARÁMETROS DEL PLAN:
@@ -98,7 +110,17 @@ Estructura la respuesta en un JSON detallado con este formato exacto:
           - Duración sesión: ${params.timePerSession} min
           - Equipo disponible: ${params.equipment}
           
-          Determina la duración óptima del plan (entre 4 y 12 semanas) según el objetivo.
+          INSTRUCCIONES ESPECÍFICAS:
+          - Crea un plan progresivo con periodización adecuada (adaptación → intensificación → pico)
+          - Incluye ejercicios específicos y efectivos para el objetivo planteado
+          - Considera días de descanso y recuperación activa
+          - Adapta la intensidad y volumen según la experiencia del atleta
+          - Incluye variaciones de ejercicios para evitar estancamiento
+          - Proporciona descripciones detalladas de cada sesión
+          - Asegura progresión semanal clara y medible
+          ${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES DEL USUARIO:\n${params.customPrompt}\n` : ''}
+          
+          Determina la duración óptima del plan (entre 4 y 12 semanas) según el objetivo y la complejidad requerida.
           Estructura la respuesta en un JSON detallado.
         `;
 
@@ -148,7 +170,8 @@ Estructura la respuesta en un JSON detallado con este formato exacto:
         const model = "gemini-3-flash-preview";
         
         const prompt = `
-          Como experto en ciencias del deporte, diseña una "Misión de Entrenamiento" (Plan) personalizada.
+          Como experto en ciencias del deporte y entrenador personal certificado, diseña una "Misión de Entrenamiento" (Plan) personalizada y profesional.
+          
           ATLETA: ${profile.name}, Objetivo Global: ${profile.goal}.
           
           PARÁMETROS DEL PLAN:
@@ -159,7 +182,17 @@ Estructura la respuesta en un JSON detallado con este formato exacto:
           - Duración sesión: ${params.timePerSession} min
           - Equipo disponible: ${params.equipment}
           
-          Determina la duración óptima del plan (entre 4 y 12 semanas) según el objetivo.
+          INSTRUCCIONES ESPECÍFICAS:
+          - Crea un plan progresivo con periodización adecuada (adaptación → intensificación → pico)
+          - Incluye ejercicios específicos y efectivos para el objetivo planteado
+          - Considera días de descanso y recuperación activa
+          - Adapta la intensidad y volumen según la experiencia del atleta
+          - Incluye variaciones de ejercicios para evitar estancamiento
+          - Proporciona descripciones detalladas de cada sesión
+          - Asegura progresión semanal clara y medible
+          ${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES DEL USUARIO:\n${params.customPrompt}\n` : ''}
+          
+          Determina la duración óptima del plan (entre 4 y 12 semanas) según el objetivo y la complejidad requerida.
           Estructura la respuesta en un JSON detallado.
         `;
 
@@ -203,7 +236,8 @@ Estructura la respuesta en un JSON detallado con este formato exacto:
       } else if (!useOpenAI && process.env.OPENAI_API_KEY) {
         console.warn('Gemini failed, trying OpenAI fallback...');
         const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-        const prompt = `Como experto en ciencias del deporte, diseña una "Misión de Entrenamiento" (Plan) personalizada.
+        const prompt = `Como experto en ciencias del deporte y entrenador personal certificado, diseña una "Misión de Entrenamiento" (Plan) personalizada y profesional.
+
 ATLETA: ${profile.name}, Objetivo Global: ${profile.goal}.
 
 PARÁMETROS DEL PLAN:
@@ -214,7 +248,17 @@ PARÁMETROS DEL PLAN:
 - Duración sesión: ${params.timePerSession} min
 - Equipo disponible: ${params.equipment}
 
-Determina la duración óptima del plan (entre 4 y 12 semanas) según el objetivo.
+INSTRUCCIONES ESPECÍFICAS:
+- Crea un plan progresivo con periodización adecuada (adaptación → intensificación → pico)
+- Incluye ejercicios específicos y efectivos para el objetivo planteado
+- Considera días de descanso y recuperación activa
+- Adapta la intensidad y volumen según la experiencia del atleta
+- Incluye variaciones de ejercicios para evitar estancamiento
+- Proporciona descripciones detalladas de cada sesión
+- Asegura progresión semanal clara y medible
+${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES DEL USUARIO:\n${params.customPrompt}\n` : ''}
+
+Determina la duración óptima del plan (entre 4 y 12 semanas) según el objetivo y la complejidad requerida.
 Estructura la respuesta en un JSON detallado con este formato exacto:
 {
   "durationWeeks": número entre 4 y 12,
@@ -239,7 +283,7 @@ Estructura la respuesta en un JSON detallado con este formato exacto:
           messages: [
             { 
               role: 'system', 
-              content: 'Eres un experto en diseño de planes de entrenamiento personalizados. Crea planes detallados, progresivos y efectivos.' 
+              content: 'Eres un experto en ciencias del deporte, fisiología del ejercicio y diseño de planes de entrenamiento personalizados. Tienes certificaciones en entrenamiento personal y años de experiencia. Crea planes detallados, progresivos, seguros y altamente efectivos basados en evidencia científica.' 
             },
             { role: 'user', content: prompt }
           ],
