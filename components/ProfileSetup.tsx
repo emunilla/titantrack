@@ -1,18 +1,19 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { UserProfile } from '../types';
-import { Target, User, Scale, Sparkles, Ruler, Activity, X, Shield, ArrowRight } from 'lucide-react';
+import { Target, User, Scale, Sparkles, Ruler, Activity, X, Shield, ArrowRight, LogOut } from 'lucide-react';
 
 interface Props {
   onSubmit: (profile: UserProfile) => void;
   onCancel?: () => void;
+  onLogout?: () => void; // Nueva prop para cerrar sesión
   showCancel?: boolean;
   initialData?: UserProfile;
 }
 
 const AVATAR_COLORS = ['#06b6d4', '#4f46e5', '#10b981', '#f59e0b', '#f43f5e', '#ec4899', '#f8fafc'];
 
-const ProfileSetup: React.FC<Props> = ({ onSubmit, onCancel, showCancel, initialData }) => {
+const ProfileSetup: React.FC<Props> = ({ onSubmit, onCancel, onLogout, showCancel, initialData }) => {
   const [name, setName] = useState(initialData?.name || '');
   const [goal, setGoal] = useState(initialData?.goal || 'Ganar masa muscular');
   const [weight, setWeight] = useState(initialData?.initialWeight?.toString() || '');
@@ -126,6 +127,15 @@ const ProfileSetup: React.FC<Props> = ({ onSubmit, onCancel, showCancel, initial
             {initialData ? 'Sincronizar Datos' : 'Registrar Perfil'} <ArrowRight size={16}/>
           </button>
         </form>
+
+        {!initialData && onLogout && (
+          <button 
+            onClick={onLogout}
+            className="mt-6 w-full flex items-center justify-center gap-2 text-[10px] font-black text-slate-500 hover:text-red-500 transition-all uppercase tracking-widest"
+          >
+            <LogOut size={14} /> Volver al acceso (Cerrar Sesión)
+          </button>
+        )}
       </div>
     </div>
   );

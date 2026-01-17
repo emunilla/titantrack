@@ -27,14 +27,24 @@ const App: React.FC = () => {
   const [filterType, setFilterType] = useState<SportType | 'all'>('all');
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setIsLoading(false);
-    });
+    // Escuchar cambios en la sesión de Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (!session) { setData(null); setIsLoading(false); }
+      if (session) {
+        loadAllUserData();
+      } else {
+        setData(null);
+        setIsLoading(false);
+      }
     });
+
+    // Carga inicial de sesión
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session) loadAllUserData();
+      else setIsLoading(false);
+    });
+
     return () => subscription.unsubscribe();
   }, []);
 
@@ -50,37 +60,45 @@ const App: React.FC = () => {
   }, [theme]);
 
   const loadAllUserData = async () => {
-    if (!session) return;
     setIsFetchingData(true);
     try {
       const profile = await db.profiles.getMyProfile();
-      if (!profile) { setData(null); return; }
-      const [workouts, weightHistory, plans] = await Promise.all([
-        db.workouts.getMyWorkouts(),
-        db.weightHistory.getMyHistory(),
-        db.plans.getMyPlans()
-      ]);
+      if (!profile) { 
+        setData(null); 
+        setIsLoading(false);
+        setIsFetchingData(false);
+        return; 
+      }
+      
+      // Cargamos cada recurso de forma resiliente
+      const workouts = await db.workouts.getMyWorkouts().catch(() => []);
+      const weightHistory = await db.weightHistory.getMyHistory().catch(() => []);
+      const plans = await db.plans.getMyPlans().catch(() => []);
 
       setData({
         profile: {
-          id: profile.id, name: profile.name, goal: profile.goal, initialWeight: profile.initial_weight,
-          height: profile.height, restingHeartRate: profile.resting_heart_rate, avatarColor: profile.avatar_color
+          id: profile.id, 
+          name: profile.name, 
+          goal: profile.goal, 
+          initialWeight: profile.initial_weight,
+          height: profile.height, 
+          restingHeartRate: profile.resting_heart_rate, 
+          avatarColor: profile.avatar_color
         },
-        workouts: workouts.map(w => ({
+        workouts: (workouts || []).map((w: any) => ({
           id: w.id, date: w.date, type: w.type as SportType, strengthData: w.strength_data,
           cardioData: w.cardio_data, groupClassData: w.group_class_data, notes: w.notes, planId: w.plan_id
         })),
-        weightHistory: weightHistory,
-        plans: plans
+        weightHistory: weightHistory || [],
+        plans: plans || []
       });
     } catch (err) {
-      console.error("Error cargando datos:", err);
+      console.error("Error crítico cargando datos:", err);
     } finally {
       setIsFetchingData(false);
+      setIsLoading(false);
     }
   };
-
-  useEffect(() => { if (session) loadAllUserData(); }, [session]);
 
   const handleSaveWorkout = async (workout: Workout) => {
     setIsFetchingData(true);
@@ -133,7 +151,14 @@ const App: React.FC = () => {
     }
   };
 
-  const logout = async () => { await db.auth.signOut(); setSession(null); setData(null); };
+  const logout = async () => { 
+    setIsLoading(true);
+    await db.auth.signOut(); 
+    setSession(null); 
+    setData(null); 
+    setIsLoading(false);
+  };
+
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
 
   const workoutsGroupedByDate = useMemo(() => {
@@ -150,10 +175,35 @@ const App: React.FC = () => {
 
   const sortedDates = Object.keys(workoutsGroupedByDate).sort((a, b) => b.localeCompare(a));
 
-  if (isLoading) return <div className="h-screen flex items-center justify-center bg-black"><Loader2 className="animate-spin text-cyan-400" size={48}/></div>;
-  if (!session) return <AuthForm onAuthSuccess={() => {}} />;
-  if (!data && isFetchingData) return <div className="h-screen flex items-center justify-center bg-black text-cyan-400 font-mono tracking-widest animate-pulse">INICIANDO TERMINAL...</div>;
-  if (!data) return <ProfileSetup onSubmit={async (p) => { await db.profiles.create(p); await loadAllUserData(); }} showCancel={false} />;
+  if (isLoading) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-black gap-4">
+        <Loader2 className="animate-spin text-cyan-400" size={48}/>
+        <p className="text-[10px] font-mono text-cyan-400 uppercase tracking-[0.3em] animate-pulse">Iniciando Terminal...</p>
+      </div>
+    );
+  }
+
+  if (!session) return <AuthForm onAuthSuccess={loadAllUserData} />;
+
+  if (!data && isFetchingData) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-black text-cyan-400 gap-4">
+        <Loader2 className="animate-spin" size={48}/>
+        <p className="font-mono tracking-widest uppercase text-xs">Sincronizando Perfil...</p>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <ProfileSetup 
+        onSubmit={async (p) => { await db.profiles.create(p); await loadAllUserData(); }} 
+        onLogout={logout}
+        showCancel={false} 
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen transition-colors duration-300">
@@ -289,7 +339,6 @@ const App: React.FC = () => {
                             ))}
                           </div>
                         )}
-                        {/* Otros tipos de datos omitidos por brevedad pero mantenidos iguales */}
                       </div>
 
                       <div className="flex items-center gap-2">
@@ -309,7 +358,12 @@ const App: React.FC = () => {
         {activeTab === 'profile' && (
           <div className="max-w-2xl mx-auto space-y-6">
             {isEditingProfile ? (
-              <ProfileSetup initialData={data.profile} onSubmit={async (p) => { await db.profiles.update(p); loadAllUserData(); setIsEditingProfile(false); }} onCancel={() => setIsEditingProfile(false)} showCancel={true} />
+              <ProfileSetup 
+                initialData={data.profile} 
+                onSubmit={async (p) => { await db.profiles.update(p); loadAllUserData(); setIsEditingProfile(false); }} 
+                onCancel={() => setIsEditingProfile(false)} 
+                showCancel={true} 
+              />
             ) : (
               <div className="panel-custom rounded-2xl overflow-hidden">
                 <div className="h-2 w-full bg-accent"></div>
