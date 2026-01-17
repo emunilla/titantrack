@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { AppData, SportType, Workout, UserProfile, TrainingPlan } from './types';
+import { AppData, SportType, Workout, UserProfile, TrainingPlan, StrengthSet } from './types';
 import Dashboard from './components/Dashboard';
 import WorkoutLogger from './components/WorkoutLogger';
 import AICoach from './components/AICoach';
@@ -11,7 +11,8 @@ import { db, supabase } from './services/supabaseClient';
 import { 
   LayoutDashboard, PlusCircle, Sparkles, User, History, 
   Activity, Target, LogOut, Loader2, CalendarDays, Trash2, Settings,
-  Scale, Moon, Sun, Ruler, Users, Rocket, Database, Copy, ShieldCheck
+  Scale, Moon, Sun, Ruler, Users, Rocket, Database, Copy, ShieldCheck,
+  ChevronDown, ChevronUp, Clock, Map, Heart, StickyNote, Dumbbell
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -25,6 +26,7 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [filterType, setFilterType] = useState<SportType | 'all'>('all');
   const [missingTables, setMissingTables] = useState<string[]>([]);
+  const [expandedWorkouts, setExpandedWorkouts] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -80,7 +82,7 @@ const App: React.FC = () => {
         },
         workouts: workouts.map((w: any) => ({
           id: w.id, date: w.date, type: w.type as SportType, strengthData: w.strength_data,
-          cardioData: w.cardio_data, group_class_data: w.group_class_data, notes: w.notes, planId: w.plan_id
+          cardioData: w.cardio_data, groupClassData: w.group_class_data, notes: w.notes, planId: w.plan_id
         })),
         weightHistory,
         plans
@@ -126,6 +128,13 @@ const App: React.FC = () => {
   };
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+
+  const toggleExpand = (id: string) => {
+    const newExpanded = new Set(expandedWorkouts);
+    if (newExpanded.has(id)) newExpanded.delete(id);
+    else newExpanded.add(id);
+    setExpandedWorkouts(newExpanded);
+  };
 
   const workoutsGroupedByDate = useMemo(() => {
     if (!data) return {};
@@ -370,23 +379,105 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
                     <CalendarDays size={14} className="accent-color" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-dim">{new Date(dateKey + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}</span>
                   </div>
-                  {workoutsGroupedByDate[dateKey].map(w => (
-                    <div key={w.id} className="panel-custom p-4 rounded-xl hover:border-accent transition-all flex flex-col md:flex-row gap-4 items-center justify-between">
-                      <div className="flex items-center gap-4 min-w-[200px]">
-                        <div className="w-10 h-10 rounded-xl border border-main flex items-center justify-center accent-color">
-                          {w.type === SportType.GroupClass ? <Users size={20} /> : <Activity size={20} />}
+                  {workoutsGroupedByDate[dateKey].map(w => {
+                    const isExpanded = expandedWorkouts.has(w.id);
+                    return (
+                      <div key={w.id} className={`panel-custom rounded-xl transition-all flex flex-col overflow-hidden border ${isExpanded ? 'border-accent shadow-lg bg-slate-500/5' : 'hover:border-accent border-main'}`}>
+                        <div 
+                          onClick={() => toggleExpand(w.id)}
+                          className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between cursor-pointer group"
+                        >
+                          <div className="flex items-center gap-4 min-w-[200px]">
+                            <div className="w-10 h-10 rounded-xl border border-main flex items-center justify-center accent-color">
+                              {w.type === SportType.GroupClass ? <Users size={20} /> : <Activity size={20} />}
+                            </div>
+                            <div>
+                              <p className="text-sm font-black text-bright uppercase group-hover:accent-color transition-colors">
+                                {w.type === SportType.GroupClass ? w.groupClassData?.classType || 'Clase Colectiva' : w.type}
+                              </p>
+                              <p className="text-[9px] font-mono text-dim uppercase">{new Date(w.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-4">
+                             {/* Mini métricas rápidas */}
+                             <div className="hidden md:flex gap-4 mr-4">
+                               {w.cardioData && (
+                                 <span className="text-[9px] font-mono text-dim uppercase">{w.cardioData.distance}KM / {w.cardioData.timeMinutes}MIN</span>
+                               )}
+                               {w.strengthData && (
+                                 <span className="text-[9px] font-mono text-dim uppercase">{w.strengthData.length} EJERCICIOS</span>
+                               )}
+                             </div>
+
+                             <div className="flex items-center gap-2">
+                                <button onClick={(e) => { e.stopPropagation(); setEditingWorkout(w); setActiveTab('log'); }} className="p-3 panel-custom accent-color rounded-xl hover:bg-slate-500/10 transition-all"><Settings size={18}/></button>
+                                <button onClick={(e) => { e.stopPropagation(); if(confirm('¿BORRAR?')) { db.workouts.delete(w.id).then(() => loadAllUserData()); }}} className="p-3 panel-custom text-red-500 rounded-xl hover:bg-red-500/10 transition-all"><Trash2 size={18}/></button>
+                                <div className="ml-2 text-dim">
+                                  {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
+                                </div>
+                             </div>
+                          </div>
                         </div>
-                        <div>
-                          <p className="text-sm font-black text-bright uppercase">{w.type}</p>
-                          <p className="text-[9px] font-mono text-dim uppercase">{new Date(w.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                        </div>
+
+                        {isExpanded && (
+                          <div className="px-6 pb-6 pt-2 animate-fade-in border-t border-main/50 space-y-6">
+                            {/* Detalle de Fuerza */}
+                            {w.type === SportType.Strength && w.strengthData && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {w.strengthData.map((set, sIdx) => (
+                                  <div key={sIdx} className="bg-black/40 p-4 rounded-xl border border-main/50 flex items-center justify-between group hover:border-accent/50 transition-all">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
+                                        <Dumbbell size={16} />
+                                      </div>
+                                      <div>
+                                        <p className="text-[11px] font-black text-bright uppercase">{set.exercise}</p>
+                                        <p className="text-[9px] text-dim font-mono">{set.sets} SERIES × {set.reps} REPS</p>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <p className="text-xs font-black text-bright">{set.weight} KG</p>
+                                      <p className="text-[8px] font-mono text-dim uppercase">CARGA</p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Detalle de Cardio */}
+                            {(w.type === SportType.Running || w.type === SportType.Swimming || w.type === SportType.Cycling) && w.cardioData && (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <MetricDetail label="Distancia" value={`${w.cardioData.distance} km`} icon={<Map size={14}/>} />
+                                <MetricDetail label="Duración" value={`${w.cardioData.timeMinutes} min`} icon={<Clock size={14}/>} />
+                                {w.cardioData.avgHeartRate && <MetricDetail label="Pulsaciones" value={`${w.cardioData.avgHeartRate} ppm`} icon={<Heart size={14}/>} />}
+                                {w.cardioData.pace && <MetricDetail label="Ritmo Medio" value={w.cardioData.pace} icon={<Activity size={14}/>} />}
+                              </div>
+                            )}
+
+                            {/* Detalle de Clase Colectiva */}
+                            {w.type === SportType.GroupClass && w.groupClassData && (
+                              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                <MetricDetail label="Tipo de Clase" value={w.groupClassData.classType} icon={<Users size={14}/>} />
+                                <MetricDetail label="Duración" value={`${w.groupClassData.timeMinutes} min`} icon={<Clock size={14}/>} />
+                                {w.groupClassData.avgHeartRate && <MetricDetail label="Pulsaciones" value={`${w.groupClassData.avgHeartRate} ppm`} icon={<Heart size={14}/>} />}
+                              </div>
+                            )}
+
+                            {/* Notas */}
+                            {w.notes && (
+                              <div className="bg-amber-500/5 border border-amber-500/20 p-4 rounded-xl">
+                                <div className="flex items-center gap-2 text-[9px] font-black text-amber-500 uppercase tracking-widest mb-2">
+                                  <StickyNote size={12} /> Observaciones Operativas
+                                </div>
+                                <p className="text-xs text-bright leading-relaxed whitespace-pre-wrap">{w.notes}</p>
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => { setEditingWorkout(w); setActiveTab('log'); }} className="p-3 panel-custom accent-color rounded-xl"><Settings size={18}/></button>
-                        <button onClick={async () => { if(confirm('¿BORRAR?')) { await db.workouts.delete(w.id); await loadAllUserData(); }}} className="p-3 panel-custom text-red-500 rounded-xl"><Trash2 size={18}/></button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ))}
             </div>
@@ -443,6 +534,15 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
     </div>
   );
 };
+
+const MetricDetail = ({ label, value, icon }: any) => (
+  <div className="bg-black/20 p-3 rounded-lg border border-main/30">
+    <div className="flex items-center gap-2 text-[8px] font-black text-dim uppercase tracking-widest mb-1">
+      {icon} {label}
+    </div>
+    <p className="text-xs font-black text-bright uppercase">{value}</p>
+  </div>
+);
 
 const ProfileValue = ({ label, value, icon }: any) => (
   <div className="panel-custom bg-slate-500/5 p-5 rounded-xl group hover:border-accent transition-all">
