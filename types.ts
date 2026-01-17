@@ -41,6 +41,7 @@ export interface Workout {
   cardioData?: CardioMetrics;
   groupClassData?: GroupClassMetrics;
   notes?: string;
+  planId?: string; // Vínculo con el plan
 }
 
 export interface WeightEntry {
@@ -49,6 +50,31 @@ export interface WeightEntry {
   weight: number;
   fatPercentage?: number;
   musclePercentage?: number;
+}
+
+export interface TrainingPlan {
+  id: string;
+  name: string;
+  type: SportType;
+  objective: string;
+  frequency: number; // días/semana
+  durationWeeks: number;
+  schedule: string; // Mañana, tarde, noche
+  timePerSession: number; // minutos
+  status: 'active' | 'completed' | 'archived';
+  content: {
+    overview: string;
+    weeks: {
+      weekNumber: number;
+      focus: string;
+      sessions: {
+        day: string;
+        description: string;
+        exercises?: string[];
+      }[];
+    }[];
+  };
+  createdAt: string;
 }
 
 export interface UserProfile {
@@ -65,6 +91,7 @@ export interface AppData {
   profile: UserProfile;
   workouts: Workout[];
   weightHistory: WeightEntry[];
+  plans: TrainingPlan[]; // Nueva colección
 }
 
 export interface UserAccount {
