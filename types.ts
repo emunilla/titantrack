@@ -52,6 +52,16 @@ export interface WeightEntry {
   musclePercentage?: number;
 }
 
+/** Ejercicio detallado dentro de una sesión de entrenamiento */
+export interface PlanExercise {
+  name: string;           // Ej: "Press militar con barra", "Press banca"
+  sets: number;
+  reps: number | string; // Número o rango "8-10"
+  weight?: string;       // Ej: "60kg", "70-80% 1RM", "Máximo controlado"
+  rest?: string;         // Ej: "90 seg", "2 min"
+  notes?: string;        // Notas opcionales (técnica, variación, etc.)
+}
+
 export interface TrainingPlan {
   id: string;
   name: string;
@@ -70,7 +80,7 @@ export interface TrainingPlan {
       sessions: {
         day: string;
         description: string;
-        exercises?: string[];
+        exercises?: (string | PlanExercise)[]; // Soporta formato antiguo (string) y nuevo (objeto detallado)
       }[];
     }[];
   };

@@ -1,8 +1,27 @@
 
 import React, { useState } from 'react';
-import { AppData, SportType, TrainingPlan } from '../types';
+import { AppData, SportType, TrainingPlan, PlanExercise } from '../types';
 import { generateTrainingPlan } from '../services/aiService';
 import { Rocket, Plus, Trash2, Calendar, Clock, Target, ChevronRight, Loader2, Sparkles, BrainCircuit, ShieldCheck, Check } from 'lucide-react';
+
+/** Renderiza un ejercicio: soporta string (legacy) o objeto detallado { name, sets, reps, weight, rest, notes } */
+function ExerciseItem({ ex, compact = false }: { ex: string | PlanExercise; compact?: boolean }) {
+  if (typeof ex === 'string') {
+    return <span className="text-[8px] font-bold bg-accent/10 text-accent px-2 py-0.5 rounded border border-accent/20">{ex}</span>;
+  }
+  const e = ex as PlanExercise;
+  const line = `${e.name} · ${e.sets}×${String(e.reps)} · ${e.weight || '—'} · ${e.rest || '—'}`;
+  if (compact) {
+    return <span className="text-[8px] font-bold bg-accent/10 text-accent px-2 py-0.5 rounded border border-accent/20" title={e.notes}>{line}</span>;
+  }
+  return (
+    <div className="text-[10px] py-1.5 px-2 bg-card-inner rounded border border-main">
+      <p className="font-black text-bright uppercase">{e.name}</p>
+      <p className="text-dim">Series: {e.sets} · Reps: {String(e.reps)} · Peso: {e.weight || '—'} · Descanso: {e.rest || '—'}</p>
+      {e.notes && <p className="text-[9px] text-dim/80 italic mt-0.5">{e.notes}</p>}
+    </div>
+  );
+}
 
 interface Props {
   data: AppData;
@@ -68,7 +87,7 @@ const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan, onErro
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center bg-[#020617] p-6 rounded-2xl border border-main">
+      <div className="flex justify-between items-center bg-panel-custom p-6 rounded-2xl border border-main">
         <div>
           <h2 className="text-xl font-black text-bright flex items-center gap-2 uppercase tracking-tight">
             <Rocket className="accent-color" size={24} /> Misión Control
@@ -178,7 +197,7 @@ const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan, onErro
               </div>
               
               <div className="space-y-6">
-                <div className="panel-custom p-6 rounded-xl bg-slate-500/5">
+                <div className="panel-custom p-6 rounded-xl bg-card-inner">
                   <h4 className="text-[10px] font-black text-dim uppercase tracking-widest mb-4">Visión General Táctica</h4>
                   <p className="text-sm text-bright leading-relaxed italic">"{tempPlan.content.overview}"</p>
                 </div>
@@ -192,9 +211,16 @@ const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan, onErro
                       </div>
                       <div className="space-y-2">
                         {week.sessions.map((session: any, sIdx: number) => (
-                          <div key={sIdx} className="p-3 bg-black/40 rounded border border-main">
+                          <div key={sIdx} className="p-3 bg-card-inner rounded border border-main">
                              <p className="text-[10px] font-black text-bright uppercase mb-1">{session.day}</p>
                              <p className="text-[9px] text-dim">{session.description}</p>
+                             {session.exercises && session.exercises.length > 0 && (
+                               <div className="mt-2 space-y-1">
+                                 {session.exercises.map((ex: any, exIdx: number) => (
+                                   <ExerciseItem key={exIdx} ex={ex} compact />
+                                 ))}
+                               </div>
+                             )}
                           </div>
                         ))}
                       </div>
@@ -247,7 +273,7 @@ const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan, onErro
                   <button onClick={() => onDeletePlan(selectedPlan.id)} className="p-3 bg-white/10 hover:bg-white/20 rounded-xl transition-all"><Trash2 size={20}/></button>
                 </div>
                 
-                <div className="p-8 flex-1 overflow-y-auto space-y-8 bg-[#020617]">
+                <div className="p-8 flex-1 overflow-y-auto space-y-8 bg-panel-custom">
                   <div className="border-l-4 border-accent pl-6 py-2">
                      <p className="text-[10px] font-black text-dim uppercase tracking-widest mb-2">Resumen Operativo</p>
                      <p className="text-sm text-bright leading-relaxed">{selectedPlan.content.overview}</p>
@@ -263,13 +289,13 @@ const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan, onErro
                          </div>
                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            {week.sessions.map((session, sIdx) => (
-                             <div key={sIdx} className="p-4 bg-slate-500/5 border border-main rounded-xl hover:border-accent transition-all">
+                             <div key={sIdx} className="p-4 bg-card-inner border border-main rounded-xl hover:border-accent transition-all">
                                 <p className="text-[10px] font-black text-bright uppercase mb-2 border-b border-main pb-1">{session.day}</p>
                                 <p className="text-[10px] text-dim leading-relaxed">{session.description}</p>
-                                {session.exercises && (
-                                  <div className="mt-3 flex flex-wrap gap-1">
-                                    {session.exercises.map((ex, exIdx) => (
-                                      <span key={exIdx} className="text-[8px] font-bold bg-accent/10 text-accent px-2 py-0.5 rounded border border-accent/20">{ex}</span>
+                                {session.exercises && session.exercises.length > 0 && (
+                                  <div className="mt-3 space-y-2">
+                                    {session.exercises.map((ex: any, exIdx: number) => (
+                                      <ExerciseItem key={exIdx} ex={ex} />
                                     ))}
                                   </div>
                                 )}

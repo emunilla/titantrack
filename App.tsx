@@ -225,9 +225,9 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
 
   if (isLoading) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-black gap-4">
-        <Loader2 className="animate-spin text-cyan-400" size={48}/>
-        <p className="text-[10px] font-mono text-cyan-400 uppercase tracking-[0.3em] animate-pulse">Iniciando Terminal...</p>
+      <div className="h-screen flex flex-col items-center justify-center bg-app-custom gap-4">
+        <Loader2 className="animate-spin accent-color" size={48}/>
+        <p className="text-[10px] font-mono accent-color uppercase tracking-[0.3em] animate-pulse">Iniciando Terminal...</p>
       </div>
     );
   }
@@ -236,7 +236,7 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
 
   if (missingTables.length > 0) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6 font-sans">
+      <div className="min-h-screen bg-app-custom flex items-center justify-center p-6 font-sans">
         <div className="max-w-2xl w-full panel-custom p-10 rounded-3xl border-amber-500/50 shadow-[0_0_100px_rgba(245,158,11,0.1)]">
           <div className="flex items-center gap-4 mb-8">
             <div className="p-4 bg-amber-500 text-black rounded-2xl shadow-lg"><Database size={32}/></div>
@@ -254,7 +254,7 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
                </p>
              </div>
              
-             <div className="panel-custom p-6 bg-slate-900 rounded-xl">
+             <div className="panel-custom p-6 bg-card-inner rounded-xl">
                <ol className="text-[10px] text-dim space-y-3 font-bold uppercase tracking-widest">
                  <li className="flex gap-3"><span className="text-amber-500">01.</span> Entra en tu proyecto de Supabase.</li>
                  <li className="flex gap-3"><span className="text-amber-500">02.</span> Ve a "SQL Editor" en el menú izquierdo.</li>
@@ -263,7 +263,7 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
              </div>
           </div>
 
-          <div className="relative bg-black rounded-xl p-6 mb-8 border border-main group max-h-[250px] overflow-y-auto">
+          <div className="relative bg-input-custom rounded-xl p-6 mb-8 border border-main group max-h-[250px] overflow-y-auto">
             <button 
               onClick={() => { navigator.clipboard.writeText(SQL_SETUP); success("SQL copiado al portapapeles"); }}
               className="sticky top-0 float-right p-3 bg-accent text-white rounded-xl shadow-xl z-20 hover:scale-105 transition-all"
@@ -271,7 +271,7 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
             >
               <Copy size={18}/>
             </button>
-            <pre className="text-[11px] font-mono text-cyan-400 whitespace-pre-wrap leading-relaxed">
+            <pre className="text-[11px] font-mono accent-color whitespace-pre-wrap leading-relaxed">
               {SQL_SETUP}
             </pre>
           </div>
@@ -287,7 +287,7 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
 
   if (!data && isFetchingData) {
     return (
-      <div className="h-screen flex flex-col items-center justify-center bg-black text-cyan-400 gap-4">
+      <div className="h-screen flex flex-col items-center justify-center bg-app-custom accent-color gap-4">
         <Loader2 className="animate-spin" size={48}/>
         <p className="font-mono tracking-widest uppercase text-xs">Sincronizando Perfil...</p>
       </div>
@@ -378,7 +378,7 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
                 <h2 className="text-xl font-black text-bright flex items-center gap-2 tracking-tight uppercase"><History className="accent-color" size={20} /> Historial</h2>
                 <p className="text-xs text-dim mt-1 font-mono uppercase tracking-[0.2em]">Operaciones Registradas</p>
                </div>
-               <select value={filterType} onChange={(e) => setFilterType(e.target.value as any)} className="bg-input-custom border border-main text-[10px] font-black px-4 py-2 rounded-lg text-bright outline-none focus:border-cyan-400 cursor-pointer uppercase">
+               <select value={filterType} onChange={(e) => setFilterType(e.target.value as any)} className="bg-input-custom border border-main text-[10px] font-black px-4 py-2 rounded-lg text-bright outline-none focus:border-accent cursor-pointer uppercase">
                  <option value="all">Todas las Actividades</option>
                  <option value={SportType.Strength}>Fuerza</option>
                  <option value={SportType.GroupClass}>Clases Colectivas</option>
@@ -389,14 +389,14 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
             <div className="space-y-4">
               {sortedDates.map(dateKey => (
                 <div key={dateKey} className="space-y-2">
-                  <div className="bg-slate-500/10 px-4 py-2 border-l-4 border-main flex items-center gap-2">
+                  <div className="bg-card-inner px-4 py-2 border-l-4 border-main flex items-center gap-2">
                     <CalendarDays size={14} className="accent-color" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-dim">{new Date(dateKey + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}</span>
                   </div>
                   {workoutsGroupedByDate[dateKey].map(w => {
                     const isExpanded = expandedWorkouts.has(w.id);
                     return (
-                      <div key={w.id} className={`panel-custom rounded-xl transition-all flex flex-col overflow-hidden border ${isExpanded ? 'border-accent shadow-lg bg-slate-500/5' : 'hover:border-accent border-main'}`}>
+                      <div key={w.id} className={`panel-custom rounded-xl transition-all flex flex-col overflow-hidden border ${isExpanded ? 'border-accent shadow-lg bg-card-inner' : 'hover:border-accent border-main'}`}>
                         <div 
                           onClick={() => toggleExpand(w.id)}
                           className="p-4 flex flex-col md:flex-row gap-4 items-center justify-between cursor-pointer group"
@@ -447,7 +447,7 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
                             {w.type === SportType.Strength && w.strengthData && (
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {w.strengthData.map((set, sIdx) => (
-                                  <div key={sIdx} className={`p-4 rounded-xl border flex flex-col gap-3 group transition-all ${set.isBiSet ? 'bg-indigo-500/5 border-indigo-500/30' : 'bg-black/40 border-main/50'}`}>
+                                  <div key={sIdx} className={`p-4 rounded-xl border flex flex-col gap-3 group transition-all ${set.isBiSet ? 'bg-indigo-500/5 border-indigo-500/30' : 'bg-card-inner border-main/50'}`}>
                                     {/* Ejercicio A */}
                                     <div className="flex items-center justify-between">
                                       <div className="flex items-center gap-3">
@@ -595,7 +595,7 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
 };
 
 const MetricDetail = ({ label, value, icon }: any) => (
-  <div className="bg-black/20 p-3 rounded-lg border border-main/30">
+  <div className="bg-card-inner p-3 rounded-lg border border-main/30">
     <div className="flex items-center gap-2 text-[8px] font-black text-dim uppercase tracking-widest mb-1">
       {icon} {label}
     </div>
@@ -604,7 +604,7 @@ const MetricDetail = ({ label, value, icon }: any) => (
 );
 
 const ProfileValue = ({ label, value, icon }: any) => (
-  <div className="panel-custom bg-slate-500/5 p-5 rounded-xl group hover:border-accent transition-all">
+  <div className="panel-custom bg-card-inner p-5 rounded-xl group hover:border-accent transition-all">
     <div className="flex items-center gap-2 text-[9px] font-black text-dim uppercase tracking-widest mb-1 group-hover:accent-color transition-colors">{icon} {label}</div>
     <p className="text-xl font-black text-bright tracking-tighter uppercase truncate">{value}</p>
   </div>

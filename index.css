@@ -49,11 +49,14 @@ body {
 
 .bg-app-custom { background-color: var(--bg-app); }
 .bg-input-custom { background-color: var(--bg-input); }
+.bg-panel-custom { background-color: var(--bg-panel); }
+.bg-card-inner { background-color: var(--card-inner); }
 .text-bright { color: var(--text-bright); }
 .text-dim { color: var(--text-main); }
 .accent-color { color: var(--accent); }
 .bg-accent { background-color: var(--accent); }
 .border-main { border-color: var(--border); }
+.bg-main { background-color: var(--border); }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(5px); }

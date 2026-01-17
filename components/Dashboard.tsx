@@ -91,7 +91,7 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
           </div>
 
           {showBiometricsForm && (
-            <div className="mb-8 bg-slate-500/5 border border-main p-6 rounded-xl animate-fade-in">
+            <div className="mb-8 bg-card-inner border border-main p-6 rounded-xl animate-fade-in">
               <form onSubmit={handleEntrySubmit} className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="space-y-1">
                   <label className="text-[8px] font-black text-dim uppercase tracking-widest flex items-center gap-1">
@@ -191,7 +191,7 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
           <h3 className="text-[10px] font-black text-dim tracking-[0.2em] uppercase mb-6">ACTIVIDAD RECIENTE</h3>
           <div className="space-y-4">
             {recentWorkouts.map(w => (
-              <div key={w.id} onClick={onViewHistory} className="flex items-center justify-between border-b border-main pb-4 last:border-0 group cursor-pointer p-2 -mx-2 rounded-xl hover:bg-slate-500/5 transition-all">
+              <div key={w.id} onClick={onViewHistory} className="flex items-center justify-between border-b border-main pb-4 last:border-0 group cursor-pointer p-2 -mx-2 rounded-xl hover:bg-card-inner transition-all">
                 <div className="flex items-center gap-3">
                   <div className={`w-10 h-10 flex items-center justify-center rounded-lg border transition-colors ${
                     w.type === SportType.GroupClass ? 'text-indigo-500 border-indigo-500/20 bg-indigo-500/5' : 'accent-color border-main group-hover:border-accent'
@@ -227,7 +227,7 @@ const StatCard = ({ label, value, icon, trend, onClick, clickable }: any) => (
     className={`panel-custom p-5 rounded-2xl relative overflow-hidden group transition-all ${clickable ? 'cursor-pointer hover:border-accent hover:shadow-lg' : ''}`}
   >
     <div className="flex justify-between items-start mb-4">
-      <div className={`p-2 bg-slate-500/10 border border-main rounded-xl accent-color transition-all`}>
+      <div className={`p-2 bg-card-inner border border-main rounded-xl accent-color transition-all`}>
         {icon}
       </div>
       {trend && <span className="text-[8px] font-black text-emerald-500 tracking-widest uppercase font-mono bg-emerald-500/10 px-2 py-0.5 rounded">{trend}</span>}

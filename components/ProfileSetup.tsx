@@ -36,36 +36,36 @@ const ProfileSetup: React.FC<Props> = ({ onSubmit, onCancel, onLogout, showCance
   };
 
   return (
-    <div className={`${initialData ? 'w-full' : 'min-h-screen flex items-center justify-center p-4 bg-black'}`}>
-      <div className={`w-full max-w-md bg-[#020617] p-8 rounded border border-[#1e293b] relative shadow-[0_0_50px_rgba(0,0,0,0.5)]`}>
+    <div className={`${initialData ? 'w-full' : 'min-h-screen flex items-center justify-center p-4 bg-app-custom'}`}>
+      <div className={`w-full max-w-md panel-custom p-8 rounded relative shadow-[var(--shadow)]`}>
         {showCancel && onCancel && (
-          <button onClick={onCancel} className="absolute top-6 right-6 p-2 text-slate-500 hover:text-white transition-all">
+          <button onClick={onCancel} className="absolute top-6 right-6 p-2 text-dim hover:text-bright transition-all">
             <X size={20} />
           </button>
         )}
         
         <div className="text-center mb-8">
-          <div className="w-16 h-16 rounded border-2 border-dashed border-cyan-400/30 flex items-center justify-center mx-auto mb-4">
+          <div className="w-16 h-16 rounded border-2 border-dashed border-main flex items-center justify-center mx-auto mb-4">
             <div className="w-12 h-12 rounded flex items-center justify-center shadow-lg" style={{ backgroundColor: color }}>
               <Sparkles className="text-black w-6 h-6" />
             </div>
           </div>
-          <h1 className="text-2xl font-black text-white uppercase tracking-tighter">
+          <h1 className="text-2xl font-black text-bright uppercase tracking-tighter">
             {initialData ? 'Actualizar Perfil' : 'Configurar Perfil'}
           </h1>
-          <p className="text-[10px] font-mono text-cyan-400 mt-1 uppercase tracking-widest">Protocolo de Identidad Titan</p>
+          <p className="text-[10px] font-mono accent-color mt-1 uppercase tracking-widest">Protocolo de Identidad Titan</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Color de Identidad</label>
-            <div className="flex justify-between gap-2 p-3 bg-black/40 border border-[#1e293b] rounded">
+            <label className="text-[9px] font-black text-dim uppercase tracking-widest ml-1">Color de Identidad</label>
+            <div className="flex justify-between gap-2 p-3 bg-card-inner border border-main rounded">
               {AVATAR_COLORS.map(c => (
                 <button 
                   key={c} 
                   type="button" 
                   onClick={() => setColor(c)} 
-                  className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? 'border-cyan-400 scale-125' : 'border-transparent opacity-40 hover:opacity-100'}`} 
+                  className={`w-6 h-6 rounded-full border-2 transition-all ${color === c ? 'border-[var(--accent)] scale-125' : 'border-transparent opacity-40 hover:opacity-100'}`} 
                   style={{ backgroundColor: c }} 
                 />
               ))}
@@ -113,7 +113,7 @@ const ProfileSetup: React.FC<Props> = ({ onSubmit, onCancel, onLogout, showCance
             <select 
               value={goal} 
               onChange={(e) => setGoal(e.target.value)} 
-              className="w-full bg-black border border-[#1e293b] text-xs font-bold p-4 text-white outline-none focus:border-cyan-400 rounded uppercase tracking-widest"
+              className="w-full bg-input-custom border border-main text-xs font-bold p-4 text-bright outline-none focus:border-accent rounded uppercase tracking-widest"
             >
               <option>Ganar masa muscular</option>
               <option>Perder grasa corporal</option>
@@ -123,7 +123,7 @@ const ProfileSetup: React.FC<Props> = ({ onSubmit, onCancel, onLogout, showCance
             </select>
           </div>
 
-          <button type="submit" className="w-full bg-cyan-500 text-black font-black py-4 rounded text-xs tracking-[0.3em] shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:bg-cyan-400 transition-all uppercase flex items-center justify-center gap-2">
+          <button type="submit" className="w-full bg-accent text-white font-black py-4 rounded text-xs tracking-[0.3em] shadow-[var(--shadow)] hover:opacity-90 transition-all uppercase flex items-center justify-center gap-2">
             {initialData ? 'Sincronizar Datos' : 'Registrar Perfil'} <ArrowRight size={16}/>
           </button>
         </form>
@@ -131,7 +131,7 @@ const ProfileSetup: React.FC<Props> = ({ onSubmit, onCancel, onLogout, showCance
         {!initialData && onLogout && (
           <button 
             onClick={onLogout}
-            className="mt-6 w-full flex items-center justify-center gap-2 text-[10px] font-black text-slate-500 hover:text-red-500 transition-all uppercase tracking-widest"
+            className="mt-6 w-full flex items-center justify-center gap-2 text-[10px] font-black text-dim hover:text-red-500 transition-all uppercase tracking-widest"
           >
             <LogOut size={14} /> Volver al acceso (Cerrar Sesión)
           </button>
@@ -143,7 +143,7 @@ const ProfileSetup: React.FC<Props> = ({ onSubmit, onCancel, onLogout, showCance
 
 const TechInput = ({ label, placeholder, value, onChange, icon, type = "text" }: any) => (
   <div className="space-y-2">
-    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+    <label className="text-[9px] font-black text-dim uppercase tracking-widest ml-1 flex items-center gap-2">
       {icon} {label}
     </label>
     <input 
@@ -152,7 +152,7 @@ const TechInput = ({ label, placeholder, value, onChange, icon, type = "text" }:
       value={value} 
       onChange={(e) => onChange(e.target.value)} 
       placeholder={placeholder}
-      className="w-full bg-black border border-[#1e293b] p-4 text-xs font-bold text-white outline-none focus:border-cyan-400 rounded placeholder:text-slate-800 uppercase" 
+      className="w-full bg-input-custom border border-main p-4 text-xs font-bold text-bright outline-none focus:border-accent rounded placeholder:opacity-60 uppercase" 
     />
   </div>
 );
