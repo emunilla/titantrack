@@ -50,7 +50,8 @@ export const generateTrainingPlan = async (params: {
   timePerSession: number;
   equipment: string;
 }, profile: any) => {
-  const model = "gemini-3-pro-preview";
+  // Cambiado de gemini-3-pro-preview a gemini-3-flash-preview para evitar error 429 de cuota
+  const model = "gemini-3-flash-preview";
   
   const prompt = `
     Como experto en ciencias del deporte, diseña una "Misión de Entrenamiento" (Plan) personalizada.
