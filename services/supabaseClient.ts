@@ -29,9 +29,11 @@ export const db = {
       if (!user) return null;
       try {
         const { data, error } = await supabase.from('profiles').select('*').eq('id', user.id).single();
-        if (error && error.code !== 'PGRST116') return null; // PGRST116 es "no rows found"
+        if (error && error.code === 'PGRST116') return null; // No existe perfil
+        if (error && error.message.includes('not found')) throw new Error("TABLE_MISSING:profiles");
         return data;
-      } catch (e) {
+      } catch (e: any) {
+        if (e.message?.includes('TABLE_MISSING')) throw e;
         return null;
       }
     },
@@ -58,16 +60,9 @@ export const db = {
   },
   workouts: {
     async getMyWorkouts() {
-      try {
-        const { data, error } = await supabase.from('workouts').select('*').order('date', { ascending: false });
-        if (error) {
-          console.warn("Tabla 'workouts' no encontrada o inaccesible. Devolviendo []");
-          return [];
-        }
-        return data || [];
-      } catch (e) {
-        return [];
-      }
+      const { data, error } = await supabase.from('workouts').select('*').order('date', { ascending: false });
+      if (error && error.message.includes('not found')) throw new Error("TABLE_MISSING:workouts");
+      return data || [];
     },
     async save(workout: any) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -83,28 +78,21 @@ export const db = {
   },
   plans: {
     async getMyPlans() {
-      try {
-        const { data, error } = await supabase.from('training_plans').select('*').order('created_at', { ascending: false });
-        if (error) {
-          console.warn("Tabla 'training_plans' no encontrada o inaccesible (404). Devolviendo []");
-          return [];
-        }
-        return (data || []).map(p => ({
-          id: p.id,
-          name: p.name,
-          type: p.type,
-          objective: p.objective,
-          frequency: p.frequency,
-          durationWeeks: p.duration_weeks,
-          schedule: p.schedule,
-          timePerSession: p.time_per_session,
-          status: p.status,
-          content: p.content,
-          createdAt: p.created_at
-        }));
-      } catch (e) {
-        return [];
-      }
+      const { data, error } = await supabase.from('training_plans').select('*').order('created_at', { ascending: false });
+      if (error && error.message.includes('not found')) throw new Error("TABLE_MISSING:training_plans");
+      return (data || []).map(p => ({
+        id: p.id,
+        name: p.name,
+        type: p.type,
+        objective: p.objective,
+        frequency: p.frequency,
+        durationWeeks: p.duration_weeks,
+        schedule: p.schedule,
+        timePerSession: p.time_per_session,
+        status: p.status,
+        content: p.content,
+        createdAt: p.created_at
+      }));
     },
     async save(plan: any) {
       const { data: { user } } = await supabase.auth.getUser();
@@ -132,18 +120,11 @@ export const db = {
   },
   weightHistory: {
     async getMyHistory() {
-      try {
-        const { data, error } = await supabase.from('weight_history').select('*').order('date', { ascending: true });
-        if (error) {
-          console.warn("Tabla 'weight_history' no encontrada o inaccesible. Devolviendo []");
-          return [];
-        }
-        return (data || []).map(d => ({
-          id: d.id, date: d.date, weight: d.weight, fatPercentage: d.fat_percentage, musclePercentage: d.muscle_percentage
-        }));
-      } catch (e) {
-        return [];
-      }
+      const { data, error } = await supabase.from('weight_history').select('*').order('date', { ascending: true });
+      if (error && error.message.includes('not found')) throw new Error("TABLE_MISSING:weight_history");
+      return (data || []).map(d => ({
+        id: d.id, date: d.date, weight: d.weight, fatPercentage: d.fat_percentage, musclePercentage: d.muscle_percentage
+      }));
     },
     async add(entry: any) {
       const { data: { user } } = await supabase.auth.getUser();

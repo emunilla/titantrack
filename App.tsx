@@ -11,7 +11,7 @@ import { db, supabase } from './services/supabaseClient';
 import { 
   LayoutDashboard, PlusCircle, Sparkles, User, History, 
   Activity, Target, LogOut, Loader2, CalendarDays, Trash2, Settings,
-  Scale, Moon, Sun, Monitor, Ruler, Users, Rocket
+  Scale, Moon, Sun, Ruler, Users, Rocket, Database, Copy, ShieldCheck
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -22,23 +22,17 @@ const App: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFetchingData, setIsFetchingData] = useState(false);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [filterType, setFilterType] = useState<SportType | 'all'>('all');
+  const [missingTables, setMissingTables] = useState<string[]>([]);
 
   useEffect(() => {
-    // Escuchar cambios en la sesión de Supabase
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
-      if (session) {
-        loadAllUserData();
-      } else {
-        setData(null);
-        setIsLoading(false);
-      }
+      if (session) loadAllUserData();
+      else { setData(null); setIsLoading(false); }
     });
 
-    // Carga inicial de sesión
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) loadAllUserData();
@@ -61,19 +55,18 @@ const App: React.FC = () => {
 
   const loadAllUserData = async () => {
     setIsFetchingData(true);
+    setMissingTables([]);
     try {
       const profile = await db.profiles.getMyProfile();
       if (!profile) { 
-        setData(null); 
-        setIsLoading(false);
-        setIsFetchingData(false);
-        return; 
+        setData(null); setIsLoading(false); setIsFetchingData(false); return; 
       }
       
-      // Cargamos cada recurso de forma resiliente
-      const workouts = await db.workouts.getMyWorkouts().catch(() => []);
-      const weightHistory = await db.weightHistory.getMyHistory().catch(() => []);
-      const plans = await db.plans.getMyPlans().catch(() => []);
+      const [workouts, weightHistory, plans] = await Promise.all([
+        db.workouts.getMyWorkouts(),
+        db.weightHistory.getMyHistory(),
+        db.plans.getMyPlans()
+      ]);
 
       setData({
         profile: {
@@ -85,15 +78,19 @@ const App: React.FC = () => {
           restingHeartRate: profile.resting_heart_rate, 
           avatarColor: profile.avatar_color
         },
-        workouts: (workouts || []).map((w: any) => ({
+        workouts: workouts.map((w: any) => ({
           id: w.id, date: w.date, type: w.type as SportType, strengthData: w.strength_data,
-          cardioData: w.cardio_data, groupClassData: w.group_class_data, notes: w.notes, planId: w.plan_id
+          cardioData: w.cardio_data, group_class_data: w.group_class_data, notes: w.notes, planId: w.plan_id
         })),
-        weightHistory: weightHistory || [],
-        plans: plans || []
+        weightHistory,
+        plans
       });
-    } catch (err) {
-      console.error("Error crítico cargando datos:", err);
+    } catch (err: any) {
+      if (err.message?.includes('TABLE_MISSING')) {
+        const tableName = err.message.split(':')[1];
+        setMissingTables(prev => [...new Set([...prev, tableName])]);
+      }
+      console.error("Error cargando datos:", err);
     } finally {
       setIsFetchingData(false);
       setIsLoading(false);
@@ -104,7 +101,7 @@ const App: React.FC = () => {
     setIsFetchingData(true);
     try {
       const isNew = workout.id.length < 15;
-      const dbWorkout = {
+      await db.workouts.save({
         id: isNew ? undefined : workout.id,
         date: workout.date,
         type: workout.type,
@@ -113,50 +110,19 @@ const App: React.FC = () => {
         group_class_data: workout.groupClassData,
         notes: workout.notes,
         plan_id: workout.planId
-      };
-      await db.workouts.save(dbWorkout);
+      });
       await loadAllUserData();
       setEditingWorkout(null);
       setActiveTab('history');
     } catch (err) {
-      alert("Error al guardar la sesión.");
-    } finally {
-      setIsFetchingData(false);
-    }
-  };
-
-  const handleDeleteWorkout = async (workoutId: string) => {
-    if (!confirm('¿CONFIRMAR ELIMINACIÓN PERMANENTE?')) return;
-    setDeletingId(workoutId);
-    try {
-      await db.workouts.delete(workoutId);
-      await loadAllUserData();
-    } catch (err) {
-      alert("Error al eliminar.");
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
-  const handleSavePlan = async (plan: TrainingPlan) => {
-    setIsFetchingData(true);
-    try {
-      await db.plans.save(plan);
-      await loadAllUserData();
-      setActiveTab('plans');
-    } catch (err) {
-      alert("Error al guardar la misión.");
-    } finally {
-      setIsFetchingData(false);
-    }
+      alert("Error al guardar. Verifica la estructura de las tablas en Supabase.");
+    } finally { setIsFetchingData(false); }
   };
 
   const logout = async () => { 
     setIsLoading(true);
     await db.auth.signOut(); 
-    setSession(null); 
-    setData(null); 
-    setIsLoading(false);
+    setSession(null); setData(null); setIsLoading(false);
   };
 
   const toggleTheme = () => setTheme(prev => prev === 'dark' ? 'light' : 'dark');
@@ -175,6 +141,74 @@ const App: React.FC = () => {
 
   const sortedDates = Object.keys(workoutsGroupedByDate).sort((a, b) => b.localeCompare(a));
 
+  const SQL_SETUP = `-- ESQUEMA COMPLETO PARA TITAN BUILDER
+-- Ejecuta esto en el SQL Editor de Supabase
+
+-- 1. TABLA DE PERFILES (Vinculada a Auth)
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  goal text,
+  initial_weight double precision,
+  height double precision,
+  resting_heart_rate integer,
+  avatar_color text,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- 2. TABLA DE PLANES (Misiones)
+CREATE TABLE IF NOT EXISTS public.training_plans (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  name text NOT NULL,
+  type text NOT NULL,
+  objective text,
+  frequency integer,
+  duration_weeks integer,
+  schedule text,
+  time_per_session integer,
+  status text DEFAULT 'active',
+  content jsonb NOT NULL,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- 3. TABLA DE ENTRENAMIENTOS
+CREATE TABLE IF NOT EXISTS public.workouts (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  plan_id uuid REFERENCES public.training_plans(id) ON DELETE SET NULL,
+  date timestamp with time zone NOT NULL,
+  type text NOT NULL,
+  strength_data jsonb,
+  cardio_data jsonb,
+  group_class_data jsonb,
+  notes text,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- 4. TABLA DE PESO (Historial)
+CREATE TABLE IF NOT EXISTS public.weight_history (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  date date NOT NULL DEFAULT current_date,
+  weight double precision NOT NULL,
+  fat_percentage double precision,
+  muscle_percentage double precision,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- 5. SEGURIDAD DE FILA (RLS)
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE training_plans ENABLE ROW LEVEL SECURITY;
+ALTER TABLE workouts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE weight_history ENABLE ROW LEVEL SECURITY;
+
+-- 6. POLÍTICAS PRIVADAS
+CREATE POLICY "RLS_Profiles" ON profiles FOR ALL USING (auth.uid() = id);
+CREATE POLICY "RLS_Plans" ON training_plans FOR ALL USING (auth.uid() = profile_id);
+CREATE POLICY "RLS_Workouts" ON workouts FOR ALL USING (auth.uid() = profile_id);
+CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile_id);`;
+
   if (isLoading) {
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-black gap-4">
@@ -185,6 +219,57 @@ const App: React.FC = () => {
   }
 
   if (!session) return <AuthForm onAuthSuccess={loadAllUserData} />;
+
+  if (missingTables.length > 0) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-6 font-sans">
+        <div className="max-w-2xl w-full panel-custom p-10 rounded-3xl border-amber-500/50 shadow-[0_0_100px_rgba(245,158,11,0.1)]">
+          <div className="flex items-center gap-4 mb-8">
+            <div className="p-4 bg-amber-500 text-black rounded-2xl shadow-lg"><Database size={32}/></div>
+            <div>
+              <h2 className="text-3xl font-black text-bright uppercase tracking-tighter italic">Infraestructura Vacía</h2>
+              <p className="text-[10px] text-amber-500 font-black uppercase tracking-[0.3em] mt-1">Sincronización de Base de Datos requerida</p>
+            </div>
+          </div>
+          
+          <div className="space-y-4 mb-8">
+             <div className="flex items-start gap-4 p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+               <ShieldCheck className="text-amber-500 shrink-0" size={20} />
+               <p className="text-xs text-dim leading-relaxed uppercase">
+                 Por seguridad, <span className="text-bright font-bold">debes crear las tablas tú mismo</span> desde el panel de Supabase. El frontend no tiene permisos para modificar tu estructura de datos remota.
+               </p>
+             </div>
+             
+             <div className="panel-custom p-6 bg-slate-900 rounded-xl">
+               <ol className="text-[10px] text-dim space-y-3 font-bold uppercase tracking-widest">
+                 <li className="flex gap-3"><span className="text-amber-500">01.</span> Entra en tu proyecto de Supabase.</li>
+                 <li className="flex gap-3"><span className="text-amber-500">02.</span> Ve a "SQL Editor" en el menú izquierdo.</li>
+                 <li className="flex gap-3"><span className="text-amber-500">03.</span> Pega el código de abajo y pulsa "Run".</li>
+               </ol>
+             </div>
+          </div>
+
+          <div className="relative bg-black rounded-xl p-6 mb-8 border border-main group max-h-[250px] overflow-y-auto">
+            <button 
+              onClick={() => { navigator.clipboard.writeText(SQL_SETUP); alert("¡SQL Copiado!"); }}
+              className="sticky top-0 float-right p-3 bg-accent text-white rounded-xl shadow-xl z-20 hover:scale-105 transition-all"
+              title="Copiar Script SQL"
+            >
+              <Copy size={18}/>
+            </button>
+            <pre className="text-[11px] font-mono text-cyan-400 whitespace-pre-wrap leading-relaxed">
+              {SQL_SETUP}
+            </pre>
+          </div>
+
+          <div className="flex gap-4">
+            <button onClick={() => window.location.reload()} className="flex-1 bg-accent text-white font-black py-5 rounded-2xl text-xs tracking-widest uppercase shadow-xl hover:brightness-110 transition-all">He ejecutado el script, reintentar</button>
+            <button onClick={logout} className="px-8 panel-custom text-red-500 font-black text-[10px] tracking-widest uppercase rounded-2xl hover:bg-red-500/10 transition-all">Salir</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!data && isFetchingData) {
     return (
@@ -216,16 +301,11 @@ const App: React.FC = () => {
         </div>
 
         <nav className="flex-1 p-4 space-y-2 mt-4 overflow-y-auto">
-          <p className="text-[10px] font-black text-dim tracking-[0.2em] mb-4 ml-4">OPERACIONES</p>
           <SidebarLink icon={<LayoutDashboard size={18}/>} label="PANEL DE CONTROL" active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
           <SidebarLink icon={<PlusCircle size={18}/>} label="REGISTRAR SESIÓN" active={activeTab === 'log'} onClick={() => { setEditingWorkout(null); setActiveTab('log'); }} />
-          <SidebarLink icon={<Rocket size={18}/>} label="MISIONES (PLANES)" active={activeTab === 'plans'} onClick={() => setActiveTab('plans')} />
+          <SidebarLink icon={<Rocket size={18}/>} label="MISIONES" active={activeTab === 'plans'} onClick={() => setActiveTab('plans')} />
           <SidebarLink icon={<History size={18}/>} label="HISTORIAL" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
-          
-          <div className="pt-8">
-            <p className="text-[10px] font-black text-dim tracking-[0.2em] mb-4 ml-4">INTELIGENCIA</p>
-            <SidebarLink icon={<Sparkles size={18}/>} label="ANALISTA IA" active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
-          </div>
+          <SidebarLink icon={<Sparkles size={18}/>} label="ANALISTA IA" active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
         </nav>
 
         <div className="p-4 border-t border-main">
@@ -267,85 +347,43 @@ const App: React.FC = () => {
           />
         )}
         {activeTab === 'ai' && <AICoach data={data} />}
-        {activeTab === 'plans' && <TrainingPlans data={data} onSavePlan={handleSavePlan} onDeletePlan={async (id) => { if(confirm('¿BORRAR ESTA MISIÓN?')){ await db.plans.delete(id); loadAllUserData(); }}} />}
+        {activeTab === 'plans' && <TrainingPlans data={data} onSavePlan={async (p) => { await db.plans.save(p); await loadAllUserData(); setActiveTab('plans'); }} onDeletePlan={async (id) => { if(confirm('¿BORRAR ESTA MISIÓN?')){ await db.plans.delete(id); loadAllUserData(); }}} />}
         {activeTab === 'history' && (
           <div className="space-y-6">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 panel-custom p-6 rounded-xl">
                <div>
-                <h2 className="text-xl font-black text-bright flex items-center gap-2 tracking-tight uppercase"><History className="accent-color" size={20} /> Registro de Actividad</h2>
-                <p className="text-xs text-dim mt-1 font-mono uppercase tracking-[0.2em]">Historial Operativo</p>
+                <h2 className="text-xl font-black text-bright flex items-center gap-2 tracking-tight uppercase"><History className="accent-color" size={20} /> Historial</h2>
+                <p className="text-xs text-dim mt-1 font-mono uppercase tracking-[0.2em]">Operaciones Registradas</p>
                </div>
-               <div className="flex gap-2">
-                 <select value={filterType} onChange={(e) => setFilterType(e.target.value as any)} className="bg-input-custom border border-main text-[10px] font-black px-4 py-2 rounded-lg text-bright outline-none focus:border-cyan-400 cursor-pointer uppercase">
-                   <option value="all">Todas las Actividades</option>
-                   <option value={SportType.Strength}>Fuerza</option>
-                   <option value={SportType.GroupClass}>Clases Colectivas</option>
-                   <option value={SportType.Running}>Carrera</option>
-                   <option value={SportType.Swimming}>Natación</option>
-                 </select>
-               </div>
+               <select value={filterType} onChange={(e) => setFilterType(e.target.value as any)} className="bg-input-custom border border-main text-[10px] font-black px-4 py-2 rounded-lg text-bright outline-none focus:border-cyan-400 cursor-pointer uppercase">
+                 <option value="all">Todas las Actividades</option>
+                 <option value={SportType.Strength}>Fuerza</option>
+                 <option value={SportType.GroupClass}>Clases Colectivas</option>
+                 <option value={SportType.Running}>Carrera</option>
+                 <option value={SportType.Swimming}>Natación</option>
+               </select>
             </div>
-
             <div className="space-y-4">
               {sortedDates.map(dateKey => (
                 <div key={dateKey} className="space-y-2">
-                  <div className="bg-slate-500/10 px-4 py-2 border-l-4 border-main accent-color flex items-center gap-2">
+                  <div className="bg-slate-500/10 px-4 py-2 border-l-4 border-main flex items-center gap-2">
                     <CalendarDays size={14} className="accent-color" />
                     <span className="text-[10px] font-black uppercase tracking-widest text-dim">{new Date(dateKey + 'T12:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'long' })}</span>
                   </div>
                   {workoutsGroupedByDate[dateKey].map(w => (
-                    <div key={w.id} className="panel-custom p-4 rounded-xl hover:border-accent transition-all flex flex-col md:flex-row gap-4 items-start md:items-center justify-between group">
+                    <div key={w.id} className="panel-custom p-4 rounded-xl hover:border-accent transition-all flex flex-col md:flex-row gap-4 items-center justify-between">
                       <div className="flex items-center gap-4 min-w-[200px]">
-                        <div className={`w-12 h-12 rounded-xl border flex items-center justify-center ${
-                          w.type === SportType.Strength ? 'border-orange-500/50 text-orange-500' : 
-                          w.type === SportType.GroupClass ? 'border-indigo-500/50 text-indigo-500' : 'accent-color border-main'
-                        }`}>
-                          {w.type === SportType.GroupClass ? <Users size={24} /> : <Activity size={24} />}
+                        <div className="w-10 h-10 rounded-xl border border-main flex items-center justify-center accent-color">
+                          {w.type === SportType.GroupClass ? <Users size={20} /> : <Activity size={20} />}
                         </div>
                         <div>
-                          <p className="text-sm font-black text-bright tracking-tight uppercase">
-                            {w.type === SportType.Strength ? 'Fuerza' : 
-                             w.type === SportType.GroupClass ? 'Clase Colectiva' : 
-                             w.type === SportType.Running ? 'Carrera' : 'Natación'}
-                          </p>
+                          <p className="text-sm font-black text-bright uppercase">{w.type}</p>
                           <p className="text-[9px] font-mono text-dim uppercase">{new Date(w.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
-                          {w.planId && (
-                            <div className="flex items-center gap-1 mt-1">
-                              <Rocket size={10} className="accent-color" />
-                              <span className="text-[8px] font-black accent-color uppercase tracking-widest">Misión Vinculada</span>
-                            </div>
-                          )}
                         </div>
                       </div>
-
-                      <div className="flex-1">
-                        {w.type === SportType.Strength && w.strengthData && (
-                          <div className="flex flex-wrap gap-2">
-                            {w.strengthData.map((s, idx) => (
-                              <div key={idx} className={`bg-slate-500/5 border px-3 py-2 rounded-lg flex flex-col gap-1 ${s.isBiSet ? 'border-indigo-500/30' : 'border-main'}`}>
-                                <div className="flex flex-col gap-1">
-                                  <div className="flex items-center justify-between gap-6">
-                                    <span className="text-[10px] font-bold text-bright uppercase tracking-tighter">{s.exercise}</span>
-                                    <span className="text-[10px] font-black accent-color">{s.sets}x{s.reps} @ {s.weight}kg</span>
-                                  </div>
-                                  {s.isBiSet && (
-                                    <div className="border-t border-main pt-1 mt-1 flex items-center justify-between gap-6">
-                                      <span className="text-[10px] font-bold text-orange-500 uppercase tracking-tighter">{s.exercise2}</span>
-                                      <span className="text-[10px] font-black text-orange-500">{s.sets2}x{s.reps2} @ {s.weight2}kg</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
                       <div className="flex items-center gap-2">
-                        <button onClick={() => { setEditingWorkout(w); setActiveTab('log'); }} className="p-3 panel-custom hover:border-accent accent-color rounded-xl transition-all shadow-sm"><Settings size={18}/></button>
-                        <button onClick={() => handleDeleteWorkout(w.id)} disabled={deletingId === w.id} className="p-3 panel-custom border-red-500/20 hover:border-red-500 text-red-500 rounded-xl transition-all shadow-sm flex items-center justify-center">
-                          {deletingId === w.id ? <Loader2 className="animate-spin" size={18} /> : <Trash2 size={18}/>}
-                        </button>
+                        <button onClick={() => { setEditingWorkout(w); setActiveTab('log'); }} className="p-3 panel-custom accent-color rounded-xl"><Settings size={18}/></button>
+                        <button onClick={async () => { if(confirm('¿BORRAR?')) { await db.workouts.delete(w.id); await loadAllUserData(); }}} className="p-3 panel-custom text-red-500 rounded-xl"><Trash2 size={18}/></button>
                       </div>
                     </div>
                   ))}
@@ -375,7 +413,7 @@ const App: React.FC = () => {
                           <h2 className="text-4xl font-black text-bright uppercase italic tracking-tighter">{data.profile.name}</h2>
                           <div className="flex items-center gap-2 mt-1">
                              <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></div>
-                             <p className="text-[10px] font-mono text-dim uppercase tracking-widest">ESTADO: LISTO PARA ENTRENAR</p>
+                             <p className="text-[10px] font-mono text-dim uppercase tracking-widest">ESTADO: ONLINE</p>
                           </div>
                         </div>
                       </div>
@@ -387,7 +425,7 @@ const App: React.FC = () => {
                       <ProfileValue label="FCR" value={`${data.profile.restingHeartRate} ppm`} icon={<Activity size={14}/>} />
                       <ProfileValue label="Peso Inicial" value={`${data.profile.initialWeight} kg`} icon={<Scale size={14}/>} />
                     </div>
-                    <button onClick={logout} className="mt-12 w-full panel-custom border-red-500/30 text-red-500 font-black py-4 rounded-xl text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-white transition-all uppercase">DESCONECTAR TERMINAL</button>
+                    <button onClick={logout} className="mt-12 w-full panel-custom border-red-500/30 text-red-500 font-black py-4 rounded-xl text-[10px] tracking-[0.3em] hover:bg-red-500 hover:text-white transition-all uppercase">DESCONECTAR</button>
                 </div>
               </div>
             )}
@@ -395,7 +433,7 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 panel-custom border-t border-main px-4 py-4 flex justify-between items-center z-50 backdrop-blur-xl bg-opacity-80 overflow-x-auto gap-4">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 panel-custom border-t border-main px-4 py-4 flex justify-between items-center z-50 backdrop-blur-xl bg-opacity-80 gap-4">
         <NavButton icon={<LayoutDashboard />} active={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
         <NavButton icon={<PlusCircle />} active={activeTab === 'log'} onClick={() => { setEditingWorkout(null); setActiveTab('log'); }} />
         <NavButton icon={<Rocket />} active={activeTab === 'plans'} onClick={() => setActiveTab('plans')} />

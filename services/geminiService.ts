@@ -50,7 +50,6 @@ export const generateTrainingPlan = async (params: {
   timePerSession: number;
   equipment: string;
 }, profile: any) => {
-  // Cambiado de gemini-3-pro-preview a gemini-3-flash-preview para evitar error 429 de cuota
   const model = "gemini-3-flash-preview";
   
   const prompt = `
@@ -66,7 +65,7 @@ export const generateTrainingPlan = async (params: {
     - Equipo disponible: ${params.equipment}
     
     Determina la duración óptima del plan (entre 4 y 12 semanas) según el objetivo.
-    Estructura la respuesta en un JSON detallado siguiendo el esquema proporcionado.
+    Estructura la respuesta en un JSON detallado.
   `;
 
   try {
