@@ -12,7 +12,7 @@ import {
   LayoutDashboard, PlusCircle, Sparkles, User, History, 
   Activity, Target, LogOut, Loader2, CalendarDays, Trash2, Settings,
   Scale, Moon, Sun, Ruler, Users, Rocket, Database, Copy, ShieldCheck,
-  ChevronDown, ChevronUp, Clock, Map, Heart, StickyNote, Dumbbell
+  ChevronDown, ChevronUp, Clock, Map, Heart, StickyNote, Dumbbell, Layers
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -78,6 +78,7 @@ const App: React.FC = () => {
           initialWeight: profile.initial_weight,
           height: profile.height, 
           restingHeartRate: profile.resting_heart_rate, 
+          // Fix: Changed avatar_color to avatarColor to match UserProfile interface
           avatarColor: profile.avatar_color
         },
         workouts: workouts.map((w: any) => ({
@@ -406,7 +407,7 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
                                  <span className="text-[9px] font-mono text-dim uppercase">{w.cardioData.distance}KM / {w.cardioData.timeMinutes}MIN</span>
                                )}
                                {w.strengthData && (
-                                 <span className="text-[9px] font-mono text-dim uppercase">{w.strengthData.length} EJERCICIOS</span>
+                                 <span className="text-[9px] font-mono text-dim uppercase">{w.strengthData.length} BLOQUES</span>
                                )}
                              </div>
 
@@ -426,20 +427,46 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
                             {w.type === SportType.Strength && w.strengthData && (
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                 {w.strengthData.map((set, sIdx) => (
-                                  <div key={sIdx} className="bg-black/40 p-4 rounded-xl border border-main/50 flex items-center justify-between group hover:border-accent/50 transition-all">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center text-accent">
-                                        <Dumbbell size={16} />
+                                  <div key={sIdx} className={`p-4 rounded-xl border flex flex-col gap-3 group transition-all ${set.isBiSet ? 'bg-indigo-500/5 border-indigo-500/30' : 'bg-black/40 border-main/50'}`}>
+                                    {/* Ejercicio A */}
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex items-center gap-3">
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${set.isBiSet ? 'bg-indigo-500/10 text-indigo-400' : 'bg-accent/10 text-accent'}`}>
+                                          {set.isBiSet ? <Layers size={16} /> : <Dumbbell size={16} />}
+                                        </div>
+                                        <div>
+                                          <p className="text-[11px] font-black text-bright uppercase">
+                                            {set.isBiSet ? 'A: ' : ''}{set.exercise}
+                                          </p>
+                                          <p className="text-[9px] text-dim font-mono">{set.sets} SERIES × {set.reps} REPS</p>
+                                        </div>
                                       </div>
-                                      <div>
-                                        <p className="text-[11px] font-black text-bright uppercase">{set.exercise}</p>
-                                        <p className="text-[9px] text-dim font-mono">{set.sets} SERIES × {set.reps} REPS</p>
+                                      <div className="text-right">
+                                        <p className="text-xs font-black text-bright">{set.weight} KG</p>
+                                        <p className="text-[8px] font-mono text-dim uppercase">CARGA</p>
                                       </div>
                                     </div>
-                                    <div className="text-right">
-                                      <p className="text-xs font-black text-bright">{set.weight} KG</p>
-                                      <p className="text-[8px] font-mono text-dim uppercase">CARGA</p>
-                                    </div>
+
+                                    {/* Ejercicio B si es BiSet */}
+                                    {set.isBiSet && (
+                                      <div className="pt-3 border-t border-indigo-500/20 flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                                            <div className="text-[10px] font-black">B</div>
+                                          </div>
+                                          <div>
+                                            <p className="text-[11px] font-black text-bright uppercase">
+                                              {set.exercise2 || 'EJERCICIO B'}
+                                            </p>
+                                            <p className="text-[9px] text-dim font-mono">{set.sets} SERIES × {set.reps2 || set.reps} REPS</p>
+                                          </div>
+                                        </div>
+                                        <div className="text-right">
+                                          <p className="text-xs font-black text-bright">{set.weight2 || set.weight} KG</p>
+                                          <p className="text-[8px] font-mono text-dim uppercase">CARGA</p>
+                                        </div>
+                                      </div>
+                                    )}
                                   </div>
                                 ))}
                               </div>
