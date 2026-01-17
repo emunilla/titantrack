@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { AppData, SportType, TrainingPlan } from '../types';
-import { generateTrainingPlan } from '../services/geminiService';
+import { generateTrainingPlan } from '../services/aiService';
 import { Rocket, Plus, Trash2, Calendar, Clock, Target, ChevronRight, Loader2, Sparkles, BrainCircuit, ShieldCheck, Check } from 'lucide-react';
 
 interface Props {

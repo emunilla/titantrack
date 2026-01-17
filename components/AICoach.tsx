@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { AppData } from '../types';
-import { analyzeWorkouts } from '../services/geminiService';
+import { analyzeWorkouts } from '../services/aiService';
 import { Sparkles, BrainCircuit, Target, Lightbulb, Quote, Loader2, Activity, Terminal } from 'lucide-react';
 
 interface Props {

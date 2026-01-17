@@ -53,10 +53,11 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
     .slice(-10)
     .map(entry => ({
       date: new Date(entry.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
-      weight: entry.weight,
-      fat: entry.fatPercentage,
-      muscle: entry.musclePercentage
-    }));
+      weight: entry.weight || 0,
+      fat: entry.fatPercentage || 0,
+      muscle: entry.musclePercentage || 0
+    }))
+    .filter(entry => entry.weight > 0); // Solo mostrar entradas con peso válido
 
   const getWorkoutLabel = (w: any) => {
     switch (w.type) {
@@ -111,7 +112,10 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
                     type="number" 
                     step="0.1" 
                     placeholder="00.0" 
-                    onChange={e => setNewEntry({...newEntry, weight: parseFloat(e.target.value)})} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      setNewEntry({...newEntry, weight: val === '' ? 0 : parseFloat(val) || 0});
+                    }} 
                     className="w-full bg-input-custom border border-main text-[10px] p-2 accent-color outline-none focus:border-accent rounded" 
                   />
                 </div>
@@ -123,7 +127,10 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
                     type="number" 
                     step="0.1" 
                     placeholder="00.0" 
-                    onChange={e => setNewEntry({...newEntry, fatPercentage: parseFloat(e.target.value)})} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      setNewEntry({...newEntry, fatPercentage: val === '' ? 0 : parseFloat(val) || 0});
+                    }} 
                     className="w-full bg-input-custom border border-main text-[10px] p-2 text-orange-500 outline-none focus:border-orange-500 rounded" 
                   />
                 </div>
@@ -135,7 +142,10 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
                     type="number" 
                     step="0.1" 
                     placeholder="00.0" 
-                    onChange={e => setNewEntry({...newEntry, musclePercentage: parseFloat(e.target.value)})} 
+                    onChange={e => {
+                      const val = e.target.value;
+                      setNewEntry({...newEntry, musclePercentage: val === '' ? 0 : parseFloat(val) || 0});
+                    }} 
                     className="w-full bg-input-custom border border-main text-[10px] p-2 text-emerald-500 outline-none focus:border-emerald-500 rounded" 
                   />
                 </div>
@@ -144,29 +154,36 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
             </div>
           )}
 
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={chartData}>
-                <defs>
-                  <linearGradient id="colorAccent" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
-                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: 'var(--text-main)', fontSize: 9, fontWeight: 700}} />
-                <YAxis hide domain={['dataMin - 5', 'dataMax + 5']} />
-                <Tooltip 
-                  contentStyle={{backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: '12px', fontSize: '10px'}}
-                  itemStyle={{fontWeight: 900}}
-                  formatter={(value: any, name: string) => {
-                    const labels: any = { weight: 'PESO (kg)', fat: 'GRASA (%)', muscle: 'MÚSCULO (%)' };
-                    return [value, labels[name] || name];
-                  }}
-                />
-                <Area type="monotone" dataKey="weight" stroke="var(--accent)" strokeWidth={3} fillOpacity={1} fill="url(#colorAccent)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="h-64 min-h-[256px]">
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%" minHeight={256}>
+                <AreaChart data={chartData}>
+                  <defs>
+                    <linearGradient id="colorAccent" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.4}/>
+                      <stop offset="95%" stopColor="var(--accent)" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{fill: 'var(--text-main)', fontSize: 9, fontWeight: 700}} />
+                  <YAxis hide domain={['dataMin - 5', 'dataMax + 5']} />
+                  <Tooltip 
+                    contentStyle={{backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border)', borderRadius: '12px', fontSize: '10px'}}
+                    itemStyle={{fontWeight: 900}}
+                    formatter={(value: any, name: string) => {
+                      const labels: any = { weight: 'PESO (kg)', fat: 'GRASA (%)', muscle: 'MÚSCULO (%)' };
+                      const numValue = typeof value === 'number' && !isNaN(value) ? value : 0;
+                      return [numValue, labels[name] || name];
+                    }}
+                  />
+                  <Area type="monotone" dataKey="weight" stroke="var(--accent)" strokeWidth={3} fillOpacity={1} fill="url(#colorAccent)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-dim text-xs uppercase tracking-widest">
+                No hay datos para mostrar
+              </div>
+            )}
           </div>
         </div>
 
