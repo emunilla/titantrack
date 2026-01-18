@@ -11,7 +11,7 @@ import Toast from './components/Toast';
 import { useToast } from './hooks/useToast';
 import { db, supabase } from './services/supabaseClient';
 import { 
-  LayoutDashboard, PlusCircle, Sparkles, User, History, 
+  LayoutDashboard, PlusCircle, Sparkles, User, History, Flame,
   Activity, Target, LogOut, Loader2, CalendarDays, Trash2, Settings,
   Scale, Moon, Sun, Ruler, Users, Rocket, Database, Copy, ShieldCheck,
   ChevronDown, ChevronUp, Clock, Map, Heart, StickyNote, Dumbbell, Layers
@@ -417,7 +417,16 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
                              {/* Mini métricas rápidas */}
                              <div className="hidden md:flex gap-4 mr-4">
                                {w.cardioData && (
-                                 <span className="text-[9px] font-mono text-dim uppercase">{w.cardioData.distance}KM / {w.cardioData.timeMinutes}MIN</span>
+                                 <span className="text-[9px] font-mono text-dim uppercase">
+                                   {w.cardioData.distance}KM / {w.cardioData.timeMinutes}MIN
+                                   {w.cardioData.calories && ` / ${w.cardioData.calories}KCAL`}
+                                 </span>
+                               )}
+                               {w.groupClassData && (
+                                 <span className="text-[9px] font-mono text-dim uppercase">
+                                   {w.groupClassData.timeMinutes}MIN
+                                   {w.groupClassData.calories && ` / ${w.groupClassData.calories}KCAL`}
+                                 </span>
                                )}
                                {w.strengthData && (
                                  <span className="text-[9px] font-mono text-dim uppercase">{w.strengthData.length} BLOQUES</span>
@@ -498,16 +507,18 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
                                 <MetricDetail label="Distancia" value={`${w.cardioData.distance} km`} icon={<Map size={14}/>} />
                                 <MetricDetail label="Duración" value={`${w.cardioData.timeMinutes} min`} icon={<Clock size={14}/>} />
                                 {w.cardioData.avgHeartRate && <MetricDetail label="Pulsaciones" value={`${w.cardioData.avgHeartRate} ppm`} icon={<Heart size={14}/>} />}
+                                {w.cardioData.calories && <MetricDetail label="Calorías" value={`${w.cardioData.calories} kcal`} icon={<Flame size={14}/>} />}
                                 {w.cardioData.pace && <MetricDetail label="Ritmo Medio" value={w.cardioData.pace} icon={<Activity size={14}/>} />}
                               </div>
                             )}
 
                             {/* Detalle de Clase Colectiva */}
                             {w.type === SportType.GroupClass && w.groupClassData && (
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <MetricDetail label="Tipo de Clase" value={w.groupClassData.classType} icon={<Users size={14}/>} />
                                 <MetricDetail label="Duración" value={`${w.groupClassData.timeMinutes} min`} icon={<Clock size={14}/>} />
                                 {w.groupClassData.avgHeartRate && <MetricDetail label="Pulsaciones" value={`${w.groupClassData.avgHeartRate} ppm`} icon={<Heart size={14}/>} />}
+                                {w.groupClassData.calories && <MetricDetail label="Calorías" value={`${w.groupClassData.calories} kcal`} icon={<Flame size={14}/>} />}
                               </div>
                             )}
 

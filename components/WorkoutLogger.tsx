@@ -10,7 +10,7 @@ interface Props {
   activePlans?: TrainingPlan[];
 }
 
-const GROUP_CLASSES = ["Total Body", "GAP", "Strength", "Dumbbells", "Pilates", "Yoga", "Cross Fit"];
+const GROUP_CLASSES = ["Total Body", "GAP", "Strength", "Dumbbells", "Pilates", "Yoga", "Cross Fit", "Bike"];
 
 const COMMON_EXERCISES = [
   "Sentadilla con Barra", "Sentadilla Búlgara", "Prensa de Piernas", "Extensiones de Cuádriceps", "Curl Femoral",
@@ -29,6 +29,7 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
   const [distance, setDistance] = useState('');
   const [time, setTime] = useState('');
   const [heartRate, setHeartRate] = useState('');
+  const [calories, setCalories] = useState('');
   const [selectedClass, setSelectedClass] = useState(GROUP_CLASSES[0]);
   const [notes, setNotes] = useState('');
   const [planId, setPlanId] = useState<string | undefined>(undefined);
@@ -44,11 +45,13 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
         setDistance(editWorkout.cardioData.distance.toString());
         setTime(editWorkout.cardioData.timeMinutes.toString());
         setHeartRate(editWorkout.cardioData.avgHeartRate?.toString() || '');
+        setCalories(editWorkout.cardioData.calories?.toString() || '');
       }
       if (editWorkout.groupClassData) {
         setSelectedClass(editWorkout.groupClassData.classType);
         setTime(editWorkout.groupClassData.timeMinutes.toString());
         setHeartRate(editWorkout.groupClassData.avgHeartRate?.toString() || '');
+        setCalories(editWorkout.groupClassData.calories?.toString() || '');
       }
     }
   }, [editWorkout]);
@@ -93,9 +96,19 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
     if (type === SportType.Strength) {
       workout.strengthData = strengthSets.filter(s => s.exercise.trim() !== '');
     } else if (type === SportType.GroupClass) {
-      workout.groupClassData = { classType: selectedClass, timeMinutes: parseFloat(time) || 0, avgHeartRate: heartRate ? parseInt(heartRate) : undefined };
+      workout.groupClassData = { 
+        classType: selectedClass, 
+        timeMinutes: parseFloat(time) || 0, 
+        avgHeartRate: heartRate ? parseInt(heartRate) : undefined,
+        calories: calories ? parseInt(calories) : undefined
+      };
     } else {
-      workout.cardioData = { distance: parseFloat(distance) || 0, timeMinutes: parseFloat(time) || 0, avgHeartRate: heartRate ? parseInt(heartRate) : undefined };
+      workout.cardioData = { 
+        distance: parseFloat(distance) || 0, 
+        timeMinutes: parseFloat(time) || 0, 
+        avgHeartRate: heartRate ? parseInt(heartRate) : undefined,
+        calories: calories ? parseInt(calories) : undefined
+      };
     }
     onSave(workout);
   };
@@ -161,10 +174,10 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
         <div className="space-y-2">
           <label className="text-[10px] font-black text-dim uppercase tracking-widest ml-1">Modalidad</label>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <ModalButton active={type === SportType.Strength} onClick={() => setType(SportType.Strength)} label="FUERZA" />
-            <ModalButton active={type === SportType.GroupClass} onClick={() => setType(SportType.GroupClass)} label="CLASE" />
-            <ModalButton active={type === SportType.Running} onClick={() => setType(SportType.Running)} label="CARRERA" />
-            <ModalButton active={type === SportType.Swimming} onClick={() => setType(SportType.Swimming)} label="NATACIÓN" />
+            <ModalButton active={type === SportType.Strength} onClick={() => { setType(SportType.Strength); setCalories(''); }} label="FUERZA" />
+            <ModalButton active={type === SportType.GroupClass} onClick={() => { setType(SportType.GroupClass); setCalories(''); }} label="CLASE" />
+            <ModalButton active={type === SportType.Running} onClick={() => { setType(SportType.Running); setCalories(''); }} label="CARRERA" />
+            <ModalButton active={type === SportType.Swimming} onClick={() => { setType(SportType.Swimming); setCalories(''); }} label="NATACIÓN" />
           </div>
         </div>
 
@@ -243,15 +256,16 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
 
         {/* Inputs de Cardio / Clase */}
         {(type === SportType.Running || type === SportType.Swimming || type === SportType.Cycling) && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
              <TechInputGroup label="Distancia (KM)" value={distance} onChange={setDistance} type="number" step="0.01" />
              <TechInputGroup label="Tiempo (MIN)" value={time} onChange={setTime} type="number" />
              <TechInputGroup label="Pulsaciones (AVG)" value={heartRate} onChange={setHeartRate} type="number" />
+             <TechInputGroup label="Calorías (KCAL)" value={calories} onChange={setCalories} type="number" />
           </div>
         )}
 
         {type === SportType.GroupClass && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-fade-in">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
              <div className="space-y-2">
                 <label className="text-[10px] font-black text-dim uppercase tracking-widest ml-1">Tipo de Clase</label>
                 <select value={selectedClass} onChange={(e) => setSelectedClass(e.target.value)} className="w-full bg-input-custom border border-main p-4 rounded-xl text-xs font-bold text-bright outline-none focus:border-accent uppercase appearance-none">
@@ -260,6 +274,7 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
              </div>
              <TechInputGroup label="Tiempo (MIN)" value={time} onChange={setTime} type="number" />
              <TechInputGroup label="Pulsaciones (AVG)" value={heartRate} onChange={setHeartRate} type="number" />
+             <TechInputGroup label="Calorías (KCAL)" value={calories} onChange={setCalories} type="number" />
           </div>
         )}
 

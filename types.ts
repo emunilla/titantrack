@@ -25,12 +25,14 @@ export interface CardioMetrics {
   timeMinutes: number;
   avgHeartRate?: number;
   pace?: string;
+  calories?: number;
 }
 
 export interface GroupClassMetrics {
   classType: string;
   timeMinutes: number;
   avgHeartRate?: number;
+  calories?: number;
 }
 
 export interface Workout {
