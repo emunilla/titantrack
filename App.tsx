@@ -7,6 +7,7 @@ import AICoach from './components/AICoach';
 import ProfileSetup from './components/ProfileSetup';
 import AuthForm from './components/AuthForm';
 import TrainingPlans from './components/TrainingPlans';
+import NutritionGuidelines from './components/NutritionGuidelines';
 import Toast from './components/Toast';
 import { useToast } from './hooks/useToast';
 import { db, supabase } from './services/supabaseClient';
@@ -14,11 +15,11 @@ import {
   LayoutDashboard, PlusCircle, Sparkles, User, History, Flame,
   Activity, Target, LogOut, Loader2, CalendarDays, Trash2, Settings,
   Scale, Moon, Sun, Ruler, Users, Rocket, Database, Copy, ShieldCheck,
-  ChevronDown, ChevronUp, Clock, Map, Heart, StickyNote, Dumbbell, Layers
+  ChevronDown, ChevronUp, Clock, Map, Heart, StickyNote, Dumbbell, Layers, Apple
 } from 'lucide-react';
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'log' | 'ai' | 'profile' | 'history' | 'plans'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'log' | 'ai' | 'profile' | 'history' | 'plans' | 'nutrition'>('dashboard');
   const [session, setSession] = useState<any>(null);
   const [data, setData] = useState<AppData | null>(null);
   const [editingWorkout, setEditingWorkout] = useState<Workout | null>(null);
@@ -67,10 +68,11 @@ const App: React.FC = () => {
         setData(null); setIsLoading(false); setIsFetchingData(false); return; 
       }
       
-      const [workouts, weightHistory, plans] = await Promise.all([
+      const [workouts, weightHistory, plans, savedGuidelines] = await Promise.all([
         db.workouts.getMyWorkouts(),
         db.weightHistory.getMyHistory(),
-        db.plans.getMyPlans()
+        db.plans.getMyPlans(),
+        db.nutritionGuidelines.getMyGuidelines().catch(() => []) // Si la tabla no existe, devolver array vacío
       ]);
 
       setData({
@@ -81,15 +83,16 @@ const App: React.FC = () => {
           initialWeight: profile.initial_weight,
           height: profile.height, 
           restingHeartRate: profile.resting_heart_rate, 
-          // Fix: Changed avatar_color to avatarColor to match UserProfile interface
-          avatarColor: profile.avatar_color
+          avatarColor: profile.avatar_color,
+          nutritionInfo: profile.nutrition_info || undefined
         },
         workouts: workouts.map((w: any) => ({
           id: w.id, date: w.date, type: w.type as SportType, strengthData: w.strength_data,
           cardioData: w.cardio_data, groupClassData: w.group_class_data, notes: w.notes, planId: w.plan_id
         })),
         weightHistory,
-        plans
+        plans,
+        savedGuidelines: savedGuidelines || []
       });
     } catch (err: any) {
       if (err.message?.includes('TABLE_MISSING')) {
@@ -167,6 +170,7 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   height double precision,
   resting_heart_rate integer,
   avatar_color text,
+  nutrition_info jsonb,
   created_at timestamp with time zone DEFAULT now()
 );
 
@@ -211,17 +215,31 @@ CREATE TABLE IF NOT EXISTS public.weight_history (
   created_at timestamp with time zone DEFAULT now()
 );
 
--- 5. SEGURIDAD DE FILA (RLS)
+-- 5. TABLA DE PAUTAS NUTRICIONALES
+CREATE TABLE IF NOT EXISTS public.nutrition_guidelines (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  profile_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  date timestamp with time zone NOT NULL DEFAULT now(),
+  macronutrients jsonb,
+  recommendations jsonb,
+  supplements jsonb,
+  general_advice text,
+  created_at timestamp with time zone DEFAULT now()
+);
+
+-- 6. SEGURIDAD DE FILA (RLS)
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE training_plans ENABLE ROW LEVEL SECURITY;
 ALTER TABLE workouts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE weight_history ENABLE ROW LEVEL SECURITY;
+ALTER TABLE nutrition_guidelines ENABLE ROW LEVEL SECURITY;
 
--- 6. POLÍTICAS PRIVADAS
+-- 7. POLÍTICAS PRIVADAS
 CREATE POLICY "RLS_Profiles" ON profiles FOR ALL USING (auth.uid() = id);
 CREATE POLICY "RLS_Plans" ON training_plans FOR ALL USING (auth.uid() = profile_id);
 CREATE POLICY "RLS_Workouts" ON workouts FOR ALL USING (auth.uid() = profile_id);
-CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile_id);`;
+CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile_id);
+CREATE POLICY "RLS_Nutrition" ON nutrition_guidelines FOR ALL USING (auth.uid() = profile_id);`;
 
   if (isLoading) {
     return (
@@ -320,6 +338,7 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
           <SidebarLink icon={<Rocket size={18}/>} label="MISIONES" active={activeTab === 'plans'} onClick={() => setActiveTab('plans')} />
           <SidebarLink icon={<History size={18}/>} label="HISTORIAL" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
           <SidebarLink icon={<Sparkles size={18}/>} label="ANALISTA IA" active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
+          <SidebarLink icon={<Apple size={18}/>} label="PAUTAS NUTRICIONALES" active={activeTab === 'nutrition'} onClick={() => setActiveTab('nutrition')} />
         </nav>
 
         <div className="p-4 border-t border-main">
@@ -361,6 +380,20 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
           />
         )}
         {activeTab === 'ai' && <AICoach data={data} onError={showError} />}
+        {activeTab === 'nutrition' && data && <NutritionGuidelines 
+          data={data} 
+          onError={showError}
+          onSaveNutritionInfo={async (info) => {
+            await db.profiles.updateNutritionInfo(info);
+            await loadAllUserData();
+            success('Información nutricional guardada');
+          }}
+          onSaveGuidelines={async (guidelines) => {
+            await db.nutritionGuidelines.save(guidelines);
+            await loadAllUserData();
+            success('Pautas nutricionales guardadas');
+          }}
+        />}
         {activeTab === 'plans' && <TrainingPlans data={data} onSavePlan={async (p) => { 
           try {
             await db.plans.save(p); 
@@ -588,6 +621,7 @@ CREATE POLICY "RLS_Weight" ON weight_history FOR ALL USING (auth.uid() = profile
         <NavButton icon={<Rocket />} active={activeTab === 'plans'} onClick={() => setActiveTab('plans')} />
         <NavButton icon={<History />} active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
         <NavButton icon={<Sparkles />} active={activeTab === 'ai'} onClick={() => setActiveTab('ai')} />
+        <NavButton icon={<Apple />} active={activeTab === 'nutrition'} onClick={() => setActiveTab('nutrition')} />
       </nav>
 
       {/* Toast Notifications */}

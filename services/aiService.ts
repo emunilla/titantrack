@@ -1,4 +1,4 @@
-import { AppData, SportType } from '../types';
+import { AppData, SportType, NutritionInfo } from '../types';
 
 export type AIProvider = 'gemini' | 'openai' | 'auto';
 
@@ -76,6 +76,36 @@ export const generateTrainingPlan = async (
     return await response.json();
   } catch (error: any) {
     console.error('Error generating training plan:', error);
+    throw error;
+  }
+};
+
+export const generateNutritionGuidelines = async (
+  data: AppData,
+  nutritionInfo: NutritionInfo,
+  config: AIConfig = { preferredProvider: 'auto', fallbackEnabled: true }
+) => {
+  try {
+    const response = await fetch(`${getApiUrl()}/api/generate-nutrition`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        data,
+        nutritionInfo,
+        preferredProvider: config.preferredProvider
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Error al generar pautas nutricionales');
+    }
+
+    return await response.json();
+  } catch (error: any) {
+    console.error('Error generating nutrition guidelines:', error);
     throw error;
   }
 };

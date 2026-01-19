@@ -89,6 +89,37 @@ export interface TrainingPlan {
   createdAt: string;
 }
 
+export interface Supplement {
+  name: string;
+  frequency: string; // Ej: "Diario", "3 veces por semana", "Pre-entrenamiento"
+  dosage?: string; // Ej: "5g", "1 cápsula"
+}
+
+export interface NutritionInfo {
+  supplements?: Supplement[];
+  additionalData?: string; // Datos adicionales que el usuario quiera compartir
+  lastUpdated?: string;
+}
+
+export interface NutritionGuidelines {
+  id?: string;
+  date: string;
+  macronutrients: {
+    proteins?: string;
+    carbohydrates?: string;
+    fats?: string;
+  };
+  recommendations: {
+    increase?: string[];
+    decrease?: string[];
+  };
+  supplements: {
+    recommended?: Array<{ name: string; reason: string; dosage?: string }>;
+    adjust?: Array<{ name: string; current: string; recommendation: string }>;
+  };
+  generalAdvice?: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -97,13 +128,15 @@ export interface UserProfile {
   height: number;
   restingHeartRate: number;
   avatarColor: string;
+  nutritionInfo?: NutritionInfo;
 }
 
 export interface AppData {
   profile: UserProfile;
   workouts: Workout[];
   weightHistory: WeightEntry[];
-  plans: TrainingPlan[]; // Nueva colección
+  plans: TrainingPlan[];
+  savedGuidelines?: NutritionGuidelines[]; // Pautas nutricionales guardadas
 }
 
 export interface UserAccount {

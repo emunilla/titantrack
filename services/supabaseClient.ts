@@ -60,6 +60,15 @@ export const db = {
       }).eq('id', user.id).select().single();
       if (error) throw error;
       return data;
+    },
+    async updateNutritionInfo(nutritionInfo: any) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No autenticado");
+      const { data, error } = await supabase.from('profiles').update({ 
+        nutrition_info: nutritionInfo
+      }).eq('id', user.id).select().single();
+      if (error) throw error;
+      return data;
     }
   },
   workouts: {
@@ -151,6 +160,38 @@ export const db = {
       }).select().single();
       if (error) throw error;
       return data;
+    }
+  },
+  nutritionGuidelines: {
+    async getMyGuidelines() {
+      const { data, error } = await supabase.from('nutrition_guidelines').select('*').order('date', { ascending: false });
+      if (error && error.message.includes('not found')) throw new Error("TABLE_MISSING:nutrition_guidelines");
+      return (data || []).map(g => ({
+        id: g.id,
+        date: g.date,
+        macronutrients: g.macronutrients,
+        recommendations: g.recommendations,
+        supplements: g.supplements,
+        generalAdvice: g.general_advice
+      }));
+    },
+    async save(guidelines: any) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("No autenticado");
+      const { data, error } = await supabase.from('nutrition_guidelines').insert({
+        profile_id: user.id,
+        date: guidelines.date,
+        macronutrients: guidelines.macronutrients || {},
+        recommendations: guidelines.recommendations || {},
+        supplements: guidelines.supplements || {},
+        general_advice: guidelines.generalAdvice || null
+      }).select().single();
+      if (error) throw error;
+      return data;
+    },
+    async delete(guidelineId: string) {
+      const { error } = await supabase.from('nutrition_guidelines').delete().eq('id', guidelineId);
+      if (error) throw error;
     }
   }
 };
