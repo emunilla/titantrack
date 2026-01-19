@@ -302,24 +302,68 @@ const ModalButton = ({ active, onClick, label }: any) => (
   <button type="button" onClick={onClick} className={`py-4 px-2 text-[9px] font-black border transition-all rounded-xl uppercase tracking-widest ${active ? 'bg-accent border-accent text-white shadow-md' : 'panel-custom text-dim hover:border-accent'}`}>{label}</button>
 );
 
-const MiniInput = ({ label, value, onChange }: any) => (
-  <div className="text-center">
-    <p className="text-[8px] font-black text-dim uppercase mb-1 tracking-widest">{label}</p>
-    <input type="number" step="0.5" value={value ?? 0} onChange={(e) => onChange(parseFloat(e.target.value) || 0)} className="w-16 bg-input-custom border border-main text-center text-xs font-black p-2 rounded-lg focus:border-accent outline-none text-bright" />
-  </div>
-);
+const MiniInput = ({ label, value, onChange }: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    // Permitir campo vacío mientras se escribe
+    if (inputValue === '' || inputValue === '-') {
+      onChange(0);
+      return;
+    }
+    const numValue = parseFloat(inputValue);
+    // Validar que sea >= 0
+    if (!isNaN(numValue) && numValue >= 0) {
+      onChange(numValue);
+    }
+  };
 
-const TechInputGroup = ({ label, value, onChange, type = "text", step = "1" }: any) => (
-  <div className="space-y-2">
-    <label className="text-[10px] font-black text-dim uppercase tracking-widest ml-1">{label}</label>
-    <input 
-      type={type} 
-      step={step}
-      value={value} 
-      onChange={e => onChange(e.target.value)} 
-      className="w-full bg-input-custom border border-main p-4 rounded-xl text-xs font-bold text-bright outline-none focus:border-accent transition-all uppercase" 
-    />
-  </div>
-);
+  return (
+    <div className="text-center">
+      <p className="text-[8px] font-black text-dim uppercase mb-1 tracking-widest">{label}</p>
+      <input 
+        type="number" 
+        step="0.5" 
+        min="0"
+        value={value ?? 0} 
+        onChange={handleChange}
+        className="w-16 bg-input-custom border border-main text-center text-xs font-black p-2 rounded-lg focus:border-accent outline-none text-bright" 
+      />
+    </div>
+  );
+};
+
+const TechInputGroup = ({ label, value, onChange, type = "text", step = "1" }: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (type === "number") {
+      const inputValue = e.target.value;
+      // Permitir campo vacío mientras se escribe
+      if (inputValue === '' || inputValue === '-') {
+        onChange('');
+        return;
+      }
+      const numValue = parseFloat(inputValue);
+      // Validar que sea >= 0
+      if (!isNaN(numValue) && numValue >= 0) {
+        onChange(inputValue);
+      }
+    } else {
+      onChange(e.target.value);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] font-black text-dim uppercase tracking-widest ml-1">{label}</label>
+      <input 
+        type={type} 
+        step={step}
+        min={type === "number" ? "0" : undefined}
+        value={value} 
+        onChange={handleChange}
+        className="w-full bg-input-custom border border-main p-4 rounded-xl text-xs font-bold text-bright outline-none focus:border-accent transition-all uppercase" 
+      />
+    </div>
+  );
+};
 
 export default WorkoutLogger;
