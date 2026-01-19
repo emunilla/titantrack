@@ -393,6 +393,11 @@ CREATE POLICY "RLS_Nutrition" ON nutrition_guidelines FOR ALL USING (auth.uid() 
             await loadAllUserData();
             success('Pautas nutricionales guardadas');
           }}
+          onDeleteGuidelines={async (id) => {
+            await db.nutritionGuidelines.delete(id);
+            await loadAllUserData();
+            success('Pauta eliminada');
+          }}
         />}
         {activeTab === 'plans' && <TrainingPlans data={data} onSavePlan={async (p) => { 
           try {
