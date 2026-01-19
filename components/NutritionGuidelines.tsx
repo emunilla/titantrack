@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { AppData, NutritionInfo, NutritionGuidelines, Supplement } from '../types';
 import { generateNutritionGuidelines } from '../services/aiService';
-import { Apple, Plus, Trash2, Save, Loader2, Sparkles, AlertCircle, CheckCircle, Flame, Eye, Calendar } from 'lucide-react';
+import { Apple, Plus, Trash2, Save, Loader2, Sparkles, AlertCircle, CheckCircle, Flame, Eye, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Props {
   data: AppData;
@@ -25,6 +25,7 @@ const NutritionGuidelinesComponent: React.FC<Props> = ({
   const [currentSupplement, setCurrentSupplement] = useState<Supplement>({ name: '', frequency: '' });
   const [generatedGuidelines, setGeneratedGuidelines] = useState<NutritionGuidelines | null>(null);
   const [selectedGuideline, setSelectedGuideline] = useState<NutritionGuidelines | null>(null);
+  const [isNutritionInfoExpanded, setIsNutritionInfoExpanded] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isSavingInfo, setIsSavingInfo] = useState(false);
   const [isSavingGuidelines, setIsSavingGuidelines] = useState(false);
@@ -210,17 +211,24 @@ const NutritionGuidelinesComponent: React.FC<Props> = ({
 
   return (
     <div className="space-y-6">
-      {/* Información Nutricional del Usuario */}
-      <div className="panel-custom p-6 rounded-2xl">
-        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-main">
-          <Apple className="accent-color" size={24} />
-          <div>
-            <h2 className="text-xl font-black text-bright uppercase tracking-tighter">Información Nutricional</h2>
-            <p className="text-[9px] text-dim uppercase tracking-widest mt-1">Datos para personalizar las pautas</p>
+      {/* Información Nutricional del Usuario - Colapsable */}
+      <div className="panel-custom rounded-2xl overflow-hidden">
+        <button
+          onClick={() => setIsNutritionInfoExpanded(!isNutritionInfoExpanded)}
+          className="w-full flex items-center justify-between p-6 hover:bg-card-inner transition-all"
+        >
+          <div className="flex items-center gap-3">
+            <Apple className="accent-color" size={24} />
+            <div className="text-left">
+              <h2 className="text-xl font-black text-bright uppercase tracking-tighter">Información Nutricional</h2>
+              <p className="text-[9px] text-dim uppercase tracking-widest mt-1">Datos para personalizar las pautas</p>
+            </div>
           </div>
-        </div>
+          {isNutritionInfoExpanded ? <ChevronUp className="text-dim" size={20} /> : <ChevronDown className="text-dim" size={20} />}
+        </button>
 
-        <div className="space-y-6">
+        {isNutritionInfoExpanded && (
+          <div className="px-6 pb-6 pt-2 space-y-6 animate-fade-in border-t border-main">
           {/* Suplementos Actuales */}
           <div className="space-y-3">
             <label className="text-[10px] font-black text-dim uppercase tracking-widest flex items-center gap-2">
@@ -301,32 +309,7 @@ const NutritionGuidelinesComponent: React.FC<Props> = ({
             {isSavingInfo ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
             {isSavingInfo ? 'Guardando...' : 'Guardar Información Nutricional'}
           </button>
-        </div>
-      </div>
-
-      {/* Generación de Pautas */}
-      <div className="panel-custom p-6 rounded-2xl">
-        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-main">
-          <Sparkles className="accent-color" size={24} />
-          <div>
-            <h2 className="text-xl font-black text-bright uppercase tracking-tighter">Pautas Nutricionales</h2>
-            <p className="text-[9px] text-dim uppercase tracking-widest mt-1">Generación inteligente basada en IA</p>
           </div>
-        </div>
-
-        <button
-          onClick={handleGenerateGuidelines}
-          disabled={isGenerating || data.workouts.length === 0}
-          className="w-full bg-accent text-white font-black py-4 rounded-xl text-xs tracking-[0.3em] shadow-xl hover:brightness-110 transition-all flex items-center justify-center gap-3 uppercase disabled:opacity-50"
-        >
-          {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
-          {isGenerating ? 'Generando Pautas...' : 'Generar Pautas Nutricionales con IA'}
-        </button>
-
-        {data.workouts.length === 0 && (
-          <p className="text-[10px] text-dim text-center mt-4 italic">
-            Necesitas registrar al menos un entrenamiento para generar pautas personalizadas
-          </p>
         )}
       </div>
 
@@ -461,6 +444,32 @@ const NutritionGuidelinesComponent: React.FC<Props> = ({
           {renderGuidelines(selectedGuideline)}
         </div>
       )}
+
+      {/* Generación de Pautas - Al Final */}
+      <div className="panel-custom p-6 rounded-2xl">
+        <div className="flex items-center gap-3 mb-6 pb-4 border-b border-main">
+          <Sparkles className="accent-color" size={24} />
+          <div>
+            <h2 className="text-xl font-black text-bright uppercase tracking-tighter">Generar Pautas Nutricionales</h2>
+            <p className="text-[9px] text-dim uppercase tracking-widest mt-1">Generación inteligente basada en IA</p>
+          </div>
+        </div>
+
+        <button
+          onClick={handleGenerateGuidelines}
+          disabled={isGenerating || data.workouts.length === 0}
+          className="w-full bg-accent text-white font-black py-4 rounded-xl text-xs tracking-[0.3em] shadow-xl hover:brightness-110 transition-all flex items-center justify-center gap-3 uppercase disabled:opacity-50"
+        >
+          {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Sparkles size={18} />}
+          {isGenerating ? 'Generando Pautas...' : 'Generar Pautas Nutricionales con IA'}
+        </button>
+
+        {data.workouts.length === 0 && (
+          <p className="text-[10px] text-dim text-center mt-4 italic">
+            Necesitas registrar al menos un entrenamiento para generar pautas personalizadas
+          </p>
+        )}
+      </div>
     </div>
   );
 };
