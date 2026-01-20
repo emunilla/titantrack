@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { AppData, WeightEntry, SportType } from '../types';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { Scale, Activity, Plus, Calendar, Percent, ChevronRight, Users } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, Legend } from 'recharts';
+import { Scale, Activity, Plus, Calendar, Percent, ChevronRight, Users, TrendingUp, Filter, Dumbbell } from 'lucide-react';
 
 interface Props {
   data: AppData;
@@ -18,6 +18,9 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
     fatPercentage: 0,
     musclePercentage: 0
   });
+  const [progressionType, setProgressionType] = useState<'cardio' | 'strength'>('cardio');
+  const [selectedCardioMetrics, setSelectedCardioMetrics] = useState<string[]>(['distance']);
+  const [selectedExercise, setSelectedExercise] = useState<string>('');
   
   const lastEntry = data.weightHistory[data.weightHistory.length - 1];
   const lastWeight = lastEntry?.weight || 0;
@@ -67,6 +70,109 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
       case SportType.GroupClass: return w.groupClassData?.classType || 'Clase Colectiva';
       default: return 'Actividad';
     }
+  };
+
+  // Obtener ejercicios únicos de fuerza
+  const getUniqueExercises = () => {
+    const exercises = new Set<string>();
+    data.workouts
+      .filter(w => w.type === SportType.Strength && w.strengthData)
+      .forEach(w => {
+        w.strengthData?.forEach(set => {
+          if (set.exercise.trim()) exercises.add(set.exercise);
+          if (set.exercise2?.trim()) exercises.add(set.exercise2);
+        });
+      });
+    return Array.from(exercises).sort();
+  };
+
+  // Preparar datos para gráfico de cardio
+  const getCardioProgressionData = () => {
+    const cardioWorkouts = data.workouts
+      .filter(w => 
+        w.type === SportType.Running || 
+        w.type === SportType.Swimming || 
+        w.type === SportType.Cycling ||
+        w.type === SportType.GroupClass
+      )
+      .map(w => ({
+        date: new Date(w.date).toISOString(),
+        type: w.type,
+        ...(w.cardioData && {
+          distance: w.cardioData.distance,
+          timeMinutes: w.cardioData.timeMinutes,
+          calories: w.cardioData.calories,
+          avgHeartRate: w.cardioData.avgHeartRate
+        }),
+        ...(w.groupClassData && {
+          timeMinutes: w.groupClassData.timeMinutes,
+          calories: w.groupClassData.calories,
+          avgHeartRate: w.groupClassData.avgHeartRate
+        })
+      }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    return cardioWorkouts.map((w, idx) => {
+      const dataPoint: any = {
+        date: new Date(w.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
+        index: idx
+      };
+
+      if (selectedCardioMetrics.includes('distance') && w.distance) {
+        dataPoint.distance = w.distance;
+      }
+      if (selectedCardioMetrics.includes('time') && w.timeMinutes) {
+        dataPoint.timeMinutes = w.timeMinutes;
+      }
+      if (selectedCardioMetrics.includes('calories') && w.calories) {
+        dataPoint.calories = w.calories;
+      }
+      if (selectedCardioMetrics.includes('heartRate') && w.avgHeartRate) {
+        dataPoint.avgHeartRate = w.avgHeartRate;
+      }
+
+      return dataPoint;
+    }).filter(d => Object.keys(d).length > 2); // Filtrar puntos sin datos
+  };
+
+  // Preparar datos para gráfico de fuerza
+  const getStrengthProgressionData = () => {
+    if (!selectedExercise) return [];
+
+    const exerciseWorkouts = data.workouts
+      .filter(w => w.type === SportType.Strength && w.strengthData)
+      .flatMap(w => {
+        const sets = w.strengthData?.filter(set => 
+          set.exercise === selectedExercise || set.exercise2 === selectedExercise
+        ) || [];
+        
+        return sets.map(set => ({
+          date: new Date(w.date).toISOString(),
+          exercise: set.exercise === selectedExercise ? set.exercise : set.exercise2,
+          weight: set.exercise === selectedExercise ? set.weight : (set.weight2 || 0),
+          reps: set.exercise === selectedExercise ? set.reps : (set.reps2 || 0),
+          sets: set.sets
+        }));
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    // Agrupar por fecha y tomar el peso máximo de ese día
+    const groupedByDate = exerciseWorkouts.reduce((acc: any, curr) => {
+      const dateKey = new Date(curr.date).toISOString().split('T')[0];
+      if (!acc[dateKey] || curr.weight > acc[dateKey].weight) {
+        acc[dateKey] = curr;
+      }
+      return acc;
+    }, {});
+
+    return Object.values(groupedByDate)
+      .map((w: any, idx) => ({
+        date: new Date(w.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
+        weight: w.weight,
+        reps: w.reps,
+        sets: w.sets,
+        index: idx
+      }));
   };
 
   return (
@@ -242,6 +348,220 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Nueva sección de Progresión de Sesiones */}
+      <div className="panel-custom p-6 rounded-2xl">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <TrendingUp className="accent-color" size={20} />
+            <h3 className="text-[10px] font-black text-dim tracking-[0.2em] uppercase">PROGRESIÓN DE SESIONES</h3>
+          </div>
+          
+          {/* Selector de tipo */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setProgressionType('cardio')}
+              className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                progressionType === 'cardio'
+                  ? 'bg-accent text-white'
+                  : 'bg-card-inner text-dim border border-main hover:border-accent'
+              }`}
+            >
+              Cardio
+            </button>
+            <button
+              onClick={() => setProgressionType('strength')}
+              className={`px-4 py-2 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                progressionType === 'strength'
+                  ? 'bg-accent text-white'
+                  : 'bg-card-inner text-dim border border-main hover:border-accent'
+              }`}
+            >
+              Fuerza
+            </button>
+          </div>
+        </div>
+
+        {progressionType === 'cardio' ? (
+          <div className="space-y-4">
+            {/* Selector múltiple de métricas */}
+            <div className="flex flex-wrap gap-2">
+              <label className="text-[9px] font-black text-dim uppercase tracking-widest flex items-center gap-2 w-full mb-2">
+                <Filter size={12} /> Seleccionar Métricas:
+              </label>
+              {[
+                { key: 'distance', label: 'Distancia (km)' },
+                { key: 'time', label: 'Tiempo (min)' },
+                { key: 'calories', label: 'Calorías' },
+                { key: 'heartRate', label: 'Pulsaciones' }
+              ].map(metric => (
+                <button
+                  key={metric.key}
+                  onClick={() => {
+                    if (selectedCardioMetrics.includes(metric.key)) {
+                      if (selectedCardioMetrics.length > 1) {
+                        setSelectedCardioMetrics(selectedCardioMetrics.filter(m => m !== metric.key));
+                      }
+                    } else {
+                      setSelectedCardioMetrics([...selectedCardioMetrics, metric.key]);
+                    }
+                  }}
+                  className={`px-3 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-lg transition-all ${
+                    selectedCardioMetrics.includes(metric.key)
+                      ? 'bg-accent text-white'
+                      : 'bg-card-inner text-dim border border-main hover:border-accent'
+                  }`}
+                >
+                  {metric.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Gráfico de Cardio */}
+            <div className="h-64 min-h-[256px]">
+              {getCardioProgressionData().length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%" minHeight={256}>
+                  <LineChart data={getCardioProgressionData()}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                    <XAxis 
+                      dataKey="date" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: 'var(--text-main)', fontSize: 9, fontWeight: 700}} 
+                    />
+                    <YAxis hide />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'var(--bg-panel)', 
+                        border: '1px solid var(--border)', 
+                        borderRadius: '12px', 
+                        fontSize: '10px'
+                      }}
+                      itemStyle={{fontWeight: 900}}
+                    />
+                    <Legend 
+                      wrapperStyle={{fontSize: '9px', fontWeight: 700}}
+                      iconType="line"
+                    />
+                    {selectedCardioMetrics.includes('distance') && (
+                      <Line 
+                        type="monotone" 
+                        dataKey="distance" 
+                        stroke="#3b82f6" 
+                        strokeWidth={2} 
+                        dot={{ fill: '#3b82f6', r: 4 }}
+                        name="Distancia (km)"
+                      />
+                    )}
+                    {selectedCardioMetrics.includes('time') && (
+                      <Line 
+                        type="monotone" 
+                        dataKey="timeMinutes" 
+                        stroke="#10b981" 
+                        strokeWidth={2} 
+                        dot={{ fill: '#10b981', r: 4 }}
+                        name="Tiempo (min)"
+                      />
+                    )}
+                    {selectedCardioMetrics.includes('calories') && (
+                      <Line 
+                        type="monotone" 
+                        dataKey="calories" 
+                        stroke="#f59e0b" 
+                        strokeWidth={2} 
+                        dot={{ fill: '#f59e0b', r: 4 }}
+                        name="Calorías"
+                      />
+                    )}
+                    {selectedCardioMetrics.includes('heartRate') && (
+                      <Line 
+                        type="monotone" 
+                        dataKey="avgHeartRate" 
+                        stroke="#ef4444" 
+                        strokeWidth={2} 
+                        dot={{ fill: '#ef4444', r: 4 }}
+                        name="Pulsaciones (ppm)"
+                      />
+                    )}
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : (
+                <div className="h-full flex items-center justify-center text-dim text-xs uppercase tracking-widest">
+                  No hay datos de cardio para mostrar
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {/* Selector de ejercicio */}
+            <div>
+              <label className="text-[9px] font-black text-dim uppercase tracking-widest flex items-center gap-2 mb-2">
+                <Dumbbell size={12} /> Seleccionar Ejercicio:
+              </label>
+              <select
+                value={selectedExercise}
+                onChange={(e) => setSelectedExercise(e.target.value)}
+                className="w-full bg-input-custom border border-main p-3 rounded-xl text-xs font-bold text-bright outline-none focus:border-accent uppercase"
+              >
+                <option value="">-- Selecciona un ejercicio --</option>
+                {getUniqueExercises().map(ex => (
+                  <option key={ex} value={ex}>{ex}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Gráfico de Fuerza */}
+            <div className="h-64 min-h-[256px]">
+              {selectedExercise && getStrengthProgressionData().length > 0 ? (
+                <ResponsiveContainer width="100%" height="100%" minHeight={256}>
+                  <LineChart data={getStrengthProgressionData()}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
+                    <XAxis 
+                      dataKey="date" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: 'var(--text-main)', fontSize: 9, fontWeight: 700}} 
+                    />
+                    <YAxis hide />
+                    <Tooltip 
+                      contentStyle={{
+                        backgroundColor: 'var(--bg-panel)', 
+                        border: '1px solid var(--border)', 
+                        borderRadius: '12px', 
+                        fontSize: '10px'
+                      }}
+                      itemStyle={{fontWeight: 900}}
+                      formatter={(value: any, name: string) => {
+                        if (name === 'weight') return [`${value} kg`, 'PESO'];
+                        if (name === 'reps') return [`${value} reps`, 'REPETICIONES'];
+                        if (name === 'sets') return [`${value} series`, 'SERIES'];
+                        return [value, name];
+                      }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="weight" 
+                      stroke="var(--accent)" 
+                      strokeWidth={3} 
+                      dot={{ fill: 'var(--accent)', r: 5 }}
+                      name={`${selectedExercise} - Peso (kg)`}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              ) : selectedExercise ? (
+                <div className="h-full flex items-center justify-center text-dim text-xs uppercase tracking-widest">
+                  No hay datos de progresión para este ejercicio
+                </div>
+              ) : (
+                <div className="h-full flex items-center justify-center text-dim text-xs uppercase tracking-widest">
+                  Selecciona un ejercicio para ver su progresión
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
