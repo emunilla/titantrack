@@ -19,6 +19,7 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
     musclePercentage: 0
   });
   const [progressionType, setProgressionType] = useState<'cardio' | 'strength'>('cardio');
+  const [selectedCardioType, setSelectedCardioType] = useState<string>('');
   const [selectedCardioMetrics, setSelectedCardioMetrics] = useState<string[]>(['distance']);
   const [selectedExercise, setSelectedExercise] = useState<string>('');
   
@@ -72,6 +73,30 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
     }
   };
 
+  // Obtener tipos de sesión de cardio disponibles
+  const getAvailableCardioTypes = () => {
+    const types = new Set<{value: string, label: string}>();
+    data.workouts
+      .filter(w => 
+        w.type === SportType.Running || 
+        w.type === SportType.Swimming || 
+        w.type === SportType.Cycling ||
+        w.type === SportType.GroupClass
+      )
+      .forEach(w => {
+        if (w.type === SportType.Running) {
+          types.add({value: 'Running', label: 'Carrera'});
+        } else if (w.type === SportType.Swimming) {
+          types.add({value: 'Swimming', label: 'Natación'});
+        } else if (w.type === SportType.Cycling) {
+          types.add({value: 'Cycling', label: 'Ciclismo'});
+        } else if (w.type === SportType.GroupClass && w.groupClassData) {
+          types.add({value: `GroupClass_${w.groupClassData.classType}`, label: w.groupClassData.classType});
+        }
+      });
+    return Array.from(types).sort((a, b) => a.label.localeCompare(b.label));
+  };
+
   // Obtener ejercicios únicos de fuerza
   const getUniqueExercises = () => {
     const exercises = new Set<string>();
@@ -88,15 +113,21 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
 
   // Preparar datos para gráfico de cardio
   const getCardioProgressionData = () => {
-    const cardioWorkouts = data.workouts
-      .filter(w => 
-        w.type === SportType.Running || 
-        w.type === SportType.Swimming || 
-        w.type === SportType.Cycling ||
-        w.type === SportType.GroupClass
-      )
+    if (!selectedCardioType) return [];
+
+    // Filtrar por tipo de sesión seleccionado
+    const filteredWorkouts = data.workouts.filter(w => {
+      if (selectedCardioType.startsWith('GroupClass_')) {
+        const classType = selectedCardioType.replace('GroupClass_', '');
+        return w.type === SportType.GroupClass && w.groupClassData?.classType === classType;
+      }
+      return w.type === selectedCardioType as SportType;
+    });
+
+    const cardioWorkouts = filteredWorkouts
       .map(w => ({
         date: new Date(w.date).toISOString(),
+        dateFormatted: new Date(w.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
         type: w.type,
         ...(w.cardioData && {
           distance: w.cardioData.distance,
@@ -112,10 +143,10 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
       }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-    return cardioWorkouts.map((w, idx) => {
+    return cardioWorkouts.map((w) => {
       const dataPoint: any = {
-        date: new Date(w.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
-        index: idx
+        date: w.dateFormatted,
+        dateRaw: w.date
       };
 
       if (selectedCardioMetrics.includes('distance') && w.distance) {
@@ -132,7 +163,16 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
       }
 
       return dataPoint;
-    }).filter(d => Object.keys(d).length > 2); // Filtrar puntos sin datos
+    }).filter(d => {
+      // Filtrar puntos que tengan al menos una métrica seleccionada
+      return selectedCardioMetrics.some(metric => {
+        if (metric === 'distance') return d.distance !== undefined;
+        if (metric === 'time') return d.timeMinutes !== undefined;
+        if (metric === 'calories') return d.calories !== undefined;
+        if (metric === 'heartRate') return d.avgHeartRate !== undefined;
+        return false;
+      });
+    });
   };
 
   // Preparar datos para gráfico de fuerza
@@ -166,13 +206,14 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
     }, {});
 
     return Object.values(groupedByDate)
-      .map((w: any, idx) => ({
+      .map((w: any) => ({
         date: new Date(w.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
+        dateRaw: w.date,
         weight: w.weight,
         reps: w.reps,
-        sets: w.sets,
-        index: idx
-      }));
+        sets: w.sets
+      }))
+      .sort((a, b) => new Date(a.dateRaw).getTime() - new Date(b.dateRaw).getTime());
   };
 
   return (
@@ -385,11 +426,32 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
 
         {progressionType === 'cardio' ? (
           <div className="space-y-4">
-            {/* Selector múltiple de métricas */}
-            <div className="flex flex-wrap gap-2">
-              <label className="text-[9px] font-black text-dim uppercase tracking-widest flex items-center gap-2 w-full mb-2">
-                <Filter size={12} /> Seleccionar Métricas:
+            {/* Selector de tipo de sesión */}
+            <div>
+              <label className="text-[9px] font-black text-dim uppercase tracking-widest flex items-center gap-2 mb-2">
+                <Activity size={12} /> Tipo de Sesión:
               </label>
+              <select
+                value={selectedCardioType}
+                onChange={(e) => {
+                  setSelectedCardioType(e.target.value);
+                  setSelectedCardioMetrics(['distance']); // Reset métricas al cambiar tipo
+                }}
+                className="w-full bg-input-custom border border-main p-3 rounded-xl text-xs font-bold text-bright outline-none focus:border-accent uppercase"
+              >
+                <option value="">-- Selecciona un tipo de sesión --</option>
+                {getAvailableCardioTypes().map(type => (
+                  <option key={type.value} value={type.value}>{type.label}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Selector múltiple de métricas */}
+            {selectedCardioType && (
+              <div className="flex flex-wrap gap-2">
+                <label className="text-[9px] font-black text-dim uppercase tracking-widest flex items-center gap-2 w-full mb-2">
+                  <Filter size={12} /> Seleccionar Métricas:
+                </label>
               {[
                 { key: 'distance', label: 'Distancia (km)' },
                 { key: 'time', label: 'Tiempo (min)' },
@@ -416,11 +478,12 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
                   {metric.label}
                 </button>
               ))}
-            </div>
+              </div>
+            )}
 
             {/* Gráfico de Cardio */}
             <div className="h-64 min-h-[256px]">
-              {getCardioProgressionData().length > 0 ? (
+              {selectedCardioType && getCardioProgressionData().length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%" minHeight={256}>
                   <LineChart data={getCardioProgressionData()}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border)" />
@@ -430,7 +493,12 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
                       tickLine={false} 
                       tick={{fill: 'var(--text-main)', fontSize: 9, fontWeight: 700}} 
                     />
-                    <YAxis hide />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: 'var(--text-main)', fontSize: 9, fontWeight: 700}}
+                      domain={['auto', 'auto']}
+                    />
                     <Tooltip 
                       contentStyle={{
                         backgroundColor: 'var(--bg-panel)', 
@@ -486,9 +554,13 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
                     )}
                   </LineChart>
                 </ResponsiveContainer>
-              ) : (
+              ) : selectedCardioType ? (
                 <div className="h-full flex items-center justify-center text-dim text-xs uppercase tracking-widest">
                   No hay datos de cardio para mostrar
+                </div>
+              ) : (
+                <div className="h-full flex items-center justify-center text-dim text-xs uppercase tracking-widest">
+                  Selecciona un tipo de sesión para ver su progresión
                 </div>
               )}
             </div>
@@ -524,7 +596,13 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
                       tickLine={false} 
                       tick={{fill: 'var(--text-main)', fontSize: 9, fontWeight: 700}} 
                     />
-                    <YAxis hide />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fill: 'var(--text-main)', fontSize: 9, fontWeight: 700}}
+                      domain={['auto', 'auto']}
+                      label={{ value: 'Peso (kg)', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle', fill: 'var(--text-main)', fontSize: '9px', fontWeight: 700 } }}
+                    />
                     <Tooltip 
                       contentStyle={{
                         backgroundColor: 'var(--bg-panel)', 
