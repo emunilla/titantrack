@@ -12,43 +12,136 @@ interface Props {
 
 const GROUP_CLASSES = ["Total Body", "GAP", "Strength", "Dumbbells", "Pilates", "Yoga", "Cross Fit", "Bike"];
 
-// Base de datos de ejercicios con imágenes (usando placeholders por ahora)
-const EXERCISES_DB: Array<{name: string, image?: string, category: string}> = [
+// Componente de ilustración anatómica simple (SVG inline)
+const ExerciseIllustration = ({ exerciseName }: { exerciseName: string }) => {
+  // Ilustraciones SVG simples y compactas estilo anatómico
+  const getIllustration = () => {
+    const name = exerciseName.toLowerCase();
+    
+    // Pecho
+    if (name.includes('banca') || name.includes('press') && name.includes('pecho')) {
+      return (
+        <svg viewBox="0 0 100 120" className="w-full h-full">
+          <rect x="20" y="60" width="60" height="40" fill="#e5e7eb" rx="4"/>
+          <ellipse cx="35" cy="70" rx="8" ry="12" fill="#ef4444"/>
+          <ellipse cx="65" cy="70" rx="8" ry="12" fill="#ef4444"/>
+          <ellipse cx="50" cy="75" rx="15" ry="8" fill="#ef4444"/>
+          <line x1="30" y1="50" x2="70" y2="50" stroke="#374151" strokeWidth="2"/>
+          <circle cx="30" cy="50" r="3" fill="#374151"/>
+          <circle cx="70" cy="50" r="3" fill="#374151"/>
+        </svg>
+      );
+    }
+    
+    // Piernas
+    if (name.includes('sentadilla') || name.includes('prensa') || name.includes('pierna')) {
+      return (
+        <svg viewBox="0 0 100 120" className="w-full h-full">
+          <ellipse cx="30" cy="80" rx="8" ry="25" fill="#ef4444"/>
+          <ellipse cx="70" cy="80" rx="8" ry="25" fill="#ef4444"/>
+          <ellipse cx="30" cy="50" rx="6" ry="15" fill="#ef4444"/>
+          <ellipse cx="70" cy="50" rx="6" ry="15" fill="#ef4444"/>
+          <ellipse cx="50" cy="30" rx="20" ry="12" fill="#e5e7eb"/>
+          <line x1="50" y1="30" x2="50" y2="80" stroke="#374151" strokeWidth="2"/>
+        </svg>
+      );
+    }
+    
+    // Espalda
+    if (name.includes('remo') || name.includes('jalón') || name.includes('dominada')) {
+      return (
+        <svg viewBox="0 0 100 120" className="w-full h-full">
+          <ellipse cx="50" cy="40" rx="18" ry="25" fill="#e5e7eb"/>
+          <path d="M 35 30 Q 50 50 65 30" stroke="#ef4444" strokeWidth="3" fill="none"/>
+          <path d="M 35 45 Q 50 65 65 45" stroke="#ef4444" strokeWidth="3" fill="none"/>
+          <ellipse cx="30" cy="70" rx="6" ry="20" fill="#ef4444"/>
+          <ellipse cx="70" cy="70" rx="6" ry="20" fill="#ef4444"/>
+        </svg>
+      );
+    }
+    
+    // Hombros
+    if (name.includes('militar') || name.includes('hombro') || name.includes('lateral')) {
+      return (
+        <svg viewBox="0 0 100 120" className="w-full h-full">
+          <ellipse cx="50" cy="35" rx="20" ry="15" fill="#e5e7eb"/>
+          <ellipse cx="25" cy="40" rx="6" ry="12" fill="#ef4444"/>
+          <ellipse cx="75" cy="40" rx="6" ry="12" fill="#ef4444"/>
+          <ellipse cx="30" cy="70" rx="6" ry="20" fill="#ef4444"/>
+          <ellipse cx="70" cy="70" rx="6" ry="20" fill="#ef4444"/>
+          <line x1="50" y1="35" x2="50" y2="90" stroke="#374151" strokeWidth="2"/>
+        </svg>
+      );
+    }
+    
+    // Brazos
+    if (name.includes('curl') || name.includes('tríceps') || name.includes('bíceps')) {
+      return (
+        <svg viewBox="0 0 100 120" className="w-full h-full">
+          <ellipse cx="30" cy="50" rx="6" ry="25" fill="#ef4444"/>
+          <ellipse cx="70" cy="50" rx="6" ry="25" fill="#ef4444"/>
+          <ellipse cx="50" cy="30" rx="18" ry="12" fill="#e5e7eb"/>
+          <ellipse cx="30" cy="80" rx="5" ry="15" fill="#ef4444"/>
+          <ellipse cx="70" cy="80" rx="5" ry="15" fill="#ef4444"/>
+        </svg>
+      );
+    }
+    
+    // Default - figura genérica
+    return (
+      <svg viewBox="0 0 100 120" className="w-full h-full">
+        <ellipse cx="50" cy="30" rx="15" ry="20" fill="#e5e7eb"/>
+        <ellipse cx="50" cy="60" rx="18" ry="25" fill="#e5e7eb"/>
+        <ellipse cx="30" cy="90" rx="6" ry="20" fill="#ef4444"/>
+        <ellipse cx="70" cy="90" rx="6" ry="20" fill="#ef4444"/>
+      </svg>
+    );
+  };
+  
+  return (
+    <div className="w-16 h-16 bg-white rounded-lg border border-main flex items-center justify-center overflow-hidden">
+      {getIllustration()}
+    </div>
+  );
+};
+
+// Base de datos de ejercicios
+const EXERCISES_DB: Array<{name: string, category: string}> = [
   // Piernas
-  { name: "Sentadilla con Barra", category: "Piernas", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Sentadilla Búlgara", category: "Piernas", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Prensa de Piernas", category: "Piernas", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Extensiones de Cuádriceps", category: "Piernas", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Curl Femoral", category: "Piernas", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Peso Muerto Convencional", category: "Piernas", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Peso Muerto Rumano", category: "Piernas", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Hip Thrust", category: "Piernas", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Zancadas (Lunges)", category: "Piernas", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
+  { name: "Sentadilla con Barra", category: "Piernas" },
+  { name: "Sentadilla Búlgara", category: "Piernas" },
+  { name: "Prensa de Piernas", category: "Piernas" },
+  { name: "Extensiones de Cuádriceps", category: "Piernas" },
+  { name: "Curl Femoral", category: "Piernas" },
+  { name: "Peso Muerto Convencional", category: "Piernas" },
+  { name: "Peso Muerto Rumano", category: "Piernas" },
+  { name: "Hip Thrust", category: "Piernas" },
+  { name: "Zancadas (Lunges)", category: "Piernas" },
   // Pecho
-  { name: "Press de Banca", category: "Pecho", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Press Inclinado con Mancuernas", category: "Pecho", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Aperturas (Flyes)", category: "Pecho", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Fondos (Dips)", category: "Pecho", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
+  { name: "Press de Banca", category: "Pecho" },
+  { name: "Press Inclinado con Mancuernas", category: "Pecho" },
+  { name: "Aperturas (Flyes)", category: "Pecho" },
+  { name: "Fondos (Dips)", category: "Pecho" },
   // Hombros
-  { name: "Press Militar", category: "Hombros", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Elevaciones Laterales", category: "Hombros", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Face Pulls", category: "Hombros", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Pájaros (Rear Delt)", category: "Hombros", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
+  { name: "Press Militar", category: "Hombros" },
+  { name: "Elevaciones Laterales", category: "Hombros" },
+  { name: "Face Pulls", category: "Hombros" },
+  { name: "Pájaros (Rear Delt)", category: "Hombros" },
   // Espalda
-  { name: "Dominadas", category: "Espalda", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Jalón al Pecho", category: "Espalda", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Remo con Barra", category: "Espalda", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Remo en Polea Baja", category: "Espalda", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Remo con Mancuerna", category: "Espalda", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
+  { name: "Dominadas", category: "Espalda" },
+  { name: "Jalón al Pecho", category: "Espalda" },
+  { name: "Remo con Barra", category: "Espalda" },
+  { name: "Remo en Polea Baja", category: "Espalda" },
+  { name: "Remo con Mancuerna", category: "Espalda" },
   // Brazos
-  { name: "Curl de Bíceps con Barra", category: "Brazos", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Curl Martillo", category: "Brazos", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Press Francés", category: "Brazos", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Extensiones de Tríceps", category: "Brazos", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
+  { name: "Curl de Bíceps con Barra", category: "Brazos" },
+  { name: "Curl Martillo", category: "Brazos" },
+  { name: "Press Francés", category: "Brazos" },
+  { name: "Extensiones de Tríceps", category: "Brazos" },
   // Core
-  { name: "Plancha Abdominal", category: "Core", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Rueda Abdominal", category: "Core", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" },
-  { name: "Elevación de Piernas", category: "Core", image: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop" }
+  { name: "Plancha Abdominal", category: "Core" },
+  { name: "Rueda Abdominal", category: "Core" },
+  { name: "Elevación de Piernas", category: "Core" }
 ];
 
 const COMMON_EXERCISES = EXERCISES_DB.map(ex => ex.name);
@@ -227,10 +320,6 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
     setStrengthSets(newSets);
   };
 
-  const getExerciseImage = (exerciseName: string) => {
-    const exercise = EXERCISES_DB.find(ex => ex.name === exerciseName);
-    return exercise?.image || 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=200&h=200&fit=crop';
-  };
 
   return (
     <div className="max-w-4xl mx-auto panel-custom p-6 md:p-8 rounded-2xl animate-fade-in shadow-2xl">
@@ -318,7 +407,7 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
                           >
                             {set.exercise ? (
                               <>
-                                <img src={getExerciseImage(set.exercise)} alt={set.exercise} className="w-12 h-12 object-cover rounded-lg" />
+                                <ExerciseIllustration exerciseName={set.exercise} />
                                 <span className="flex-1 text-left uppercase">{set.exercise}</span>
                               </>
                             ) : (
@@ -332,25 +421,25 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
                           
                           {/* Selector visual de ejercicios */}
                           {showExerciseSelector === idx && (
-                            <div className="mt-2 bg-card-inner border border-main rounded-xl p-4 max-h-96 overflow-y-auto">
-                              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                                {EXERCISES_DB.map(ex => (
-                                  <button
-                                    key={ex.name}
-                                    type="button"
-                                    onClick={() => {
-                                      updateSet(idx, { exercise: ex.name, individualSets: [{ reps: 10, weight: 20, type: 'work' }] });
-                                      setShowExerciseSelector(null);
-                                    }}
-                                    className="p-3 bg-input-custom border border-main rounded-lg hover:border-accent transition-all text-left"
-                                  >
-                                    <img src={ex.image} alt={ex.name} className="w-full h-24 object-cover rounded mb-2" />
-                                    <p className="text-[9px] font-black text-bright uppercase">{ex.name}</p>
-                                    <p className="text-[8px] text-dim">{ex.category}</p>
-                                  </button>
-                                ))}
+                              <div className="mt-2 bg-card-inner border border-main rounded-xl p-4 max-h-96 overflow-y-auto">
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                  {EXERCISES_DB.map(ex => (
+                                    <button
+                                      key={ex.name}
+                                      type="button"
+                                      onClick={() => {
+                                        updateSet(idx, { exercise: ex.name, individualSets: [{ reps: 10, weight: 20, type: 'work' }] });
+                                        setShowExerciseSelector(null);
+                                      }}
+                                      className="p-3 bg-input-custom border border-main rounded-lg hover:border-accent transition-all text-center flex flex-col items-center gap-2"
+                                    >
+                                      <ExerciseIllustration exerciseName={ex.name} />
+                                      <p className="text-[9px] font-black text-bright uppercase leading-tight">{ex.name}</p>
+                                      <p className="text-[8px] text-dim">{ex.category}</p>
+                                    </button>
+                                  ))}
+                                </div>
                               </div>
-                            </div>
                           )}
                         </div>
                       </div>
@@ -413,7 +502,7 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
                               >
                                 {set.exercise2 ? (
                                   <>
-                                    <img src={getExerciseImage(set.exercise2)} alt={set.exercise2} className="w-12 h-12 object-cover rounded-lg" />
+                                    <ExerciseIllustration exerciseName={set.exercise2} />
                                     <span className="flex-1 text-left uppercase">{set.exercise2}</span>
                                   </>
                                 ) : (
@@ -427,7 +516,7 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
                               
                               {showExerciseSelector === `b-${idx}` && (
                                 <div className="mt-2 bg-card-inner border border-main rounded-xl p-4 max-h-96 overflow-y-auto">
-                                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                                     {EXERCISES_DB.map(ex => (
                                       <button
                                         key={ex.name}
@@ -436,10 +525,10 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
                                           updateSet(idx, { exercise2: ex.name, individualSets2: [{ reps: 10, weight: 20, type: 'work' }] });
                                           setShowExerciseSelector(null);
                                         }}
-                                        className="p-3 bg-input-custom border border-main rounded-lg hover:border-accent transition-all text-left"
+                                        className="p-3 bg-input-custom border border-main rounded-lg hover:border-accent transition-all text-center flex flex-col items-center gap-2"
                                       >
-                                        <img src={ex.image} alt={ex.name} className="w-full h-24 object-cover rounded mb-2" />
-                                        <p className="text-[9px] font-black text-bright uppercase">{ex.name}</p>
+                                        <ExerciseIllustration exerciseName={ex.name} />
+                                        <p className="text-[9px] font-black text-bright uppercase leading-tight">{ex.name}</p>
                                         <p className="text-[8px] text-dim">{ex.category}</p>
                                       </button>
                                     ))}
