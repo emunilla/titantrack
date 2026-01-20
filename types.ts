@@ -8,13 +8,23 @@ export enum SportType {
   Other = 'Other'
 }
 
-export interface StrengthSet {
-  exercise: string;
-  sets: number;
+// Serie individual de un ejercicio
+export interface IndividualSet {
   reps: number;
   weight: number;
+  type: 'warmup' | 'work'; // calentamiento o trabajo
+}
+
+export interface StrengthSet {
+  exercise: string;
+  individualSets?: IndividualSet[]; // Array de series individuales (nuevo formato)
   isBiSet?: boolean;
   exercise2?: string;
+  individualSets2?: IndividualSet[]; // Array de series individuales para ejercicio 2
+  // Mantener compatibilidad con formato antiguo
+  sets?: number;
+  reps?: number;
+  weight?: number;
   sets2?: number;
   reps2?: number;
   weight2?: number;

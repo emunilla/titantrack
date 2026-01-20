@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { AppData, SportType, Workout, UserProfile, TrainingPlan, StrengthSet } from './types';
+import { AppData, SportType, Workout, UserProfile, TrainingPlan, StrengthSet, IndividualSet } from './types';
 import Dashboard from './components/Dashboard';
 import WorkoutLogger from './components/WorkoutLogger';
 import AICoach from './components/AICoach';
@@ -493,49 +493,109 @@ CREATE POLICY "RLS_Nutrition" ON nutrition_guidelines FOR ALL USING (auth.uid() 
                             {/* Detalle de Fuerza */}
                             {w.type === SportType.Strength && w.strengthData && (
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {w.strengthData.map((set, sIdx) => (
-                                  <div key={sIdx} className={`p-4 rounded-xl border flex flex-col gap-3 group transition-all ${set.isBiSet ? 'bg-indigo-500/5 border-indigo-500/30' : 'bg-card-inner border-main/50'}`}>
-                                    {/* Ejercicio A */}
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex items-center gap-3">
-                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${set.isBiSet ? 'bg-indigo-500/10 text-indigo-400' : 'bg-accent/10 text-accent'}`}>
-                                          {set.isBiSet ? <Layers size={16} /> : <Dumbbell size={16} />}
-                                        </div>
-                                        <div>
-                                          <p className="text-[11px] font-black text-bright uppercase">
-                                            {set.isBiSet ? 'A: ' : ''}{set.exercise}
-                                          </p>
-                                          <p className="text-[9px] text-dim font-mono">{set.sets} SERIES × {set.reps} REPS</p>
-                                        </div>
-                                      </div>
-                                      <div className="text-right">
-                                        <p className="text-xs font-black text-bright">{set.weight} KG</p>
-                                        <p className="text-[8px] font-mono text-dim uppercase">CARGA</p>
-                                      </div>
-                                    </div>
-
-                                    {/* Ejercicio B si es BiSet */}
-                                    {set.isBiSet && (
-                                      <div className="pt-3 border-t border-indigo-500/20 flex items-center justify-between">
+                                {w.strengthData.map((set, sIdx) => {
+                                  const individualSets = set.individualSets || [];
+                                  const individualSets2 = set.individualSets2 || [];
+                                  const hasIndividualSets = individualSets.length > 0 || individualSets2.length > 0;
+                                  
+                                  return (
+                                    <div key={sIdx} className={`p-4 rounded-xl border flex flex-col gap-3 group transition-all ${set.isBiSet ? 'bg-indigo-500/5 border-indigo-500/30' : 'bg-card-inner border-main/50'}`}>
+                                      {/* Ejercicio A */}
+                                      <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-3">
-                                          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
-                                            <div className="text-[10px] font-black">B</div>
+                                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${set.isBiSet ? 'bg-indigo-500/10 text-indigo-400' : 'bg-accent/10 text-accent'}`}>
+                                            {set.isBiSet ? <Layers size={16} /> : <Dumbbell size={16} />}
                                           </div>
                                           <div>
                                             <p className="text-[11px] font-black text-bright uppercase">
-                                              {set.exercise2 || 'EJERCICIO B'}
+                                              {set.isBiSet ? 'A: ' : ''}{set.exercise}
                                             </p>
-                                            <p className="text-[9px] text-dim font-mono">{set.sets} SERIES × {set.reps2 || set.reps} REPS</p>
+                                            {hasIndividualSets ? (
+                                              <p className="text-[9px] text-dim font-mono">{individualSets.length} SERIES</p>
+                                            ) : (
+                                              <p className="text-[9px] text-dim font-mono">{set.sets || 0} SERIES × {set.reps || 0} REPS</p>
+                                            )}
                                           </div>
                                         </div>
-                                        <div className="text-right">
-                                          <p className="text-xs font-black text-bright">{set.weight2 || set.weight} KG</p>
-                                          <p className="text-[8px] font-mono text-dim uppercase">CARGA</p>
-                                        </div>
+                                        {!hasIndividualSets && (
+                                          <div className="text-right">
+                                            <p className="text-xs font-black text-bright">{set.weight || 0} KG</p>
+                                            <p className="text-[8px] font-mono text-dim uppercase">CARGA</p>
+                                          </div>
+                                        )}
                                       </div>
-                                    )}
-                                  </div>
-                                ))}
+
+                                      {/* Series individuales ejercicio A */}
+                                      {hasIndividualSets && individualSets.length > 0 && (
+                                        <div className="space-y-2 pt-2 border-t border-main">
+                                          {individualSets.map((individualSet, idx) => (
+                                            <div key={idx} className="flex items-center justify-between p-2 bg-card-inner rounded-lg">
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-[8px] font-black text-dim w-4">#{idx + 1}</span>
+                                                <span className={`text-[8px] px-1.5 py-0.5 rounded ${individualSet.type === 'warmup' ? 'bg-amber-500/20 text-amber-500' : 'bg-accent/20 text-accent'}`}>
+                                                  {individualSet.type === 'warmup' ? 'CAL' : 'TRB'}
+                                                </span>
+                                              </div>
+                                              <div className="flex items-center gap-3 text-[9px] font-black text-bright">
+                                                <span>{individualSet.reps} REPS</span>
+                                                <span>{individualSet.weight} KG</span>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {/* Ejercicio B si es BiSet */}
+                                      {set.isBiSet && (
+                                        <div className="pt-3 border-t border-indigo-500/20">
+                                          <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center gap-3">
+                                              <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400">
+                                                <div className="text-[10px] font-black">B</div>
+                                              </div>
+                                              <div>
+                                                <p className="text-[11px] font-black text-bright uppercase">
+                                                  {set.exercise2 || 'EJERCICIO B'}
+                                                </p>
+                                                {individualSets2.length > 0 ? (
+                                                  <p className="text-[9px] text-dim font-mono">{individualSets2.length} SERIES</p>
+                                                ) : (
+                                                  <p className="text-[9px] text-dim font-mono">{set.sets || 0} SERIES × {set.reps2 || set.reps || 0} REPS</p>
+                                                )}
+                                              </div>
+                                            </div>
+                                            {individualSets2.length === 0 && (
+                                              <div className="text-right">
+                                                <p className="text-xs font-black text-bright">{set.weight2 || set.weight || 0} KG</p>
+                                                <p className="text-[8px] font-mono text-dim uppercase">CARGA</p>
+                                              </div>
+                                            )}
+                                          </div>
+                                          
+                                          {/* Series individuales ejercicio B */}
+                                          {individualSets2.length > 0 && (
+                                            <div className="space-y-2 pt-2">
+                                              {individualSets2.map((individualSet, idx) => (
+                                                <div key={idx} className="flex items-center justify-between p-2 bg-indigo-500/5 rounded-lg">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-[8px] font-black text-indigo-400 w-4">#{idx + 1}</span>
+                                                    <span className={`text-[8px] px-1.5 py-0.5 rounded ${individualSet.type === 'warmup' ? 'bg-amber-500/20 text-amber-500' : 'bg-indigo-500/20 text-indigo-400'}`}>
+                                                      {individualSet.type === 'warmup' ? 'CAL' : 'TRB'}
+                                                    </span>
+                                                  </div>
+                                                  <div className="flex items-center gap-3 text-[9px] font-black text-bright">
+                                                    <span>{individualSet.reps} REPS</span>
+                                                    <span>{individualSet.weight} KG</span>
+                                                  </div>
+                                                </div>
+                                              ))}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })}
                               </div>
                             )}
 
