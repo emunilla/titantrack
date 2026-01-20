@@ -141,20 +141,42 @@ const ProfileSetup: React.FC<Props> = ({ onSubmit, onCancel, onLogout, showCance
   );
 };
 
-const TechInput = ({ label, placeholder, value, onChange, icon, type = "text" }: any) => (
-  <div className="space-y-2">
-    <label className="text-[9px] font-black text-dim uppercase tracking-widest ml-1 flex items-center gap-2">
-      {icon} {label}
-    </label>
-    <input 
-      type={type} 
-      required 
-      value={value} 
-      onChange={(e) => onChange(e.target.value)} 
-      placeholder={placeholder}
-      className="w-full bg-input-custom border border-main p-4 text-xs font-bold text-bright outline-none focus:border-accent rounded placeholder:opacity-60 uppercase" 
-    />
-  </div>
-);
+const TechInput = ({ label, placeholder, value, onChange, icon, type = "text" }: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (type === "number") {
+      const inputValue = e.target.value;
+      // Permitir campo vacío mientras se escribe
+      if (inputValue === '' || inputValue === '-') {
+        onChange('');
+        return;
+      }
+      const numValue = parseFloat(inputValue);
+      // Validar que sea >= 0 y no sea NaN ni infinito
+      if (!isNaN(numValue) && numValue >= 0 && isFinite(numValue)) {
+        onChange(inputValue);
+      }
+      // Si es negativo o inválido, mantener el valor anterior
+    } else {
+      onChange(e.target.value);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-[9px] font-black text-dim uppercase tracking-widest ml-1 flex items-center gap-2">
+        {icon} {label}
+      </label>
+      <input 
+        type={type} 
+        required 
+        min={type === "number" ? "0" : undefined}
+        value={value} 
+        onChange={handleChange} 
+        placeholder={placeholder}
+        className="w-full bg-input-custom border border-main p-4 text-xs font-bold text-bright outline-none focus:border-accent rounded placeholder:opacity-60 uppercase" 
+      />
+    </div>
+  );
+};
 
 export default ProfileSetup;

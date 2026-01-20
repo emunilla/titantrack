@@ -111,10 +111,18 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
                   <input 
                     type="number" 
                     step="0.1" 
+                    min="0"
                     placeholder="00.0" 
                     onChange={e => {
                       const val = e.target.value;
-                      setNewEntry({...newEntry, weight: val === '' ? 0 : parseFloat(val) || 0});
+                      if (val === '' || val === '-') {
+                        setNewEntry({...newEntry, weight: 0});
+                        return;
+                      }
+                      const numVal = parseFloat(val);
+                      if (!isNaN(numVal) && numVal >= 0 && isFinite(numVal)) {
+                        setNewEntry({...newEntry, weight: numVal});
+                      }
                     }} 
                     className="w-full bg-input-custom border border-main text-[10px] p-2 accent-color outline-none focus:border-accent rounded" 
                   />
@@ -126,10 +134,19 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
                   <input 
                     type="number" 
                     step="0.1" 
+                    min="0"
+                    max="100"
                     placeholder="00.0" 
                     onChange={e => {
                       const val = e.target.value;
-                      setNewEntry({...newEntry, fatPercentage: val === '' ? 0 : parseFloat(val) || 0});
+                      if (val === '' || val === '-') {
+                        setNewEntry({...newEntry, fatPercentage: 0});
+                        return;
+                      }
+                      const numVal = parseFloat(val);
+                      if (!isNaN(numVal) && numVal >= 0 && numVal <= 100 && isFinite(numVal)) {
+                        setNewEntry({...newEntry, fatPercentage: numVal});
+                      }
                     }} 
                     className="w-full bg-input-custom border border-main text-[10px] p-2 text-orange-500 outline-none focus:border-orange-500 rounded" 
                   />
@@ -141,10 +158,19 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
                   <input 
                     type="number" 
                     step="0.1" 
+                    min="0"
+                    max="100"
                     placeholder="00.0" 
                     onChange={e => {
                       const val = e.target.value;
-                      setNewEntry({...newEntry, musclePercentage: val === '' ? 0 : parseFloat(val) || 0});
+                      if (val === '' || val === '-') {
+                        setNewEntry({...newEntry, musclePercentage: 0});
+                        return;
+                      }
+                      const numVal = parseFloat(val);
+                      if (!isNaN(numVal) && numVal >= 0 && numVal <= 100 && isFinite(numVal)) {
+                        setNewEntry({...newEntry, musclePercentage: numVal});
+                      }
                     }} 
                     className="w-full bg-input-custom border border-main text-[10px] p-2 text-emerald-500 outline-none focus:border-emerald-500 rounded" 
                   />

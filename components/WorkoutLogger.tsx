@@ -66,12 +66,15 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
         alert('Agrega al menos un ejercicio de fuerza');
         return;
       }
-      strengthSets.forEach((set, idx) => {
-        if (set.exercise.trim() && (set.sets <= 0 || set.reps <= 0 || set.weight < 0)) {
-          alert(`El ejercicio "${set.exercise}" tiene valores inválidos`);
-          return;
-        }
-      });
+      // Validar que no haya valores negativos o cero en campos requeridos
+      const invalidSet = validSets.find(set => 
+        set.sets <= 0 || set.reps <= 0 || set.weight < 0 ||
+        (set.isBiSet && (set.reps2 !== undefined && set.reps2 <= 0 || set.weight2 !== undefined && set.weight2 < 0))
+      );
+      if (invalidSet) {
+        alert(`El ejercicio "${invalidSet.exercise}" tiene valores inválidos. Series, repeticiones y peso deben ser mayores a 0.`);
+        return;
+      }
     } else if (type === SportType.GroupClass) {
       if (!time || parseFloat(time) <= 0) {
         alert('La duración debe ser mayor a 0 minutos');
@@ -311,10 +314,11 @@ const MiniInput = ({ label, value, onChange }: any) => {
       return;
     }
     const numValue = parseFloat(inputValue);
-    // Validar que sea >= 0
-    if (!isNaN(numValue) && numValue >= 0) {
+    // Validar que sea >= 0 y no sea NaN
+    if (!isNaN(numValue) && numValue >= 0 && isFinite(numValue)) {
       onChange(numValue);
     }
+    // Si es negativo o inválido, mantener el valor anterior
   };
 
   return (
@@ -342,10 +346,11 @@ const TechInputGroup = ({ label, value, onChange, type = "text", step = "1" }: a
         return;
       }
       const numValue = parseFloat(inputValue);
-      // Validar que sea >= 0
-      if (!isNaN(numValue) && numValue >= 0) {
+      // Validar que sea >= 0 y no sea NaN ni infinito
+      if (!isNaN(numValue) && numValue >= 0 && isFinite(numValue)) {
         onChange(inputValue);
       }
+      // Si es negativo o inválido, mantener el valor anterior
     } else {
       onChange(e.target.value);
     }

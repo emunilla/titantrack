@@ -321,16 +321,38 @@ const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan, onErro
   );
 };
 
-const InputGroup = ({ label, value, onChange, type = "text" }: any) => (
-  <div className="space-y-2">
-    <label className="text-[10px] font-black text-dim uppercase tracking-widest ml-1">{label}</label>
-    <input 
-      type={type} 
-      value={value} 
-      onChange={e => onChange(e.target.value)} 
-      className="w-full bg-input-custom border border-main p-4 rounded-xl text-xs font-bold text-bright outline-none focus:border-accent transition-all uppercase" 
-    />
-  </div>
-);
+const InputGroup = ({ label, value, onChange, type = "text" }: any) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (type === "number") {
+      const inputValue = e.target.value;
+      // Permitir campo vacío mientras se escribe
+      if (inputValue === '' || inputValue === '-') {
+        onChange('');
+        return;
+      }
+      const numValue = parseFloat(inputValue);
+      // Validar que sea >= 0 y no sea NaN ni infinito
+      if (!isNaN(numValue) && numValue >= 0 && isFinite(numValue)) {
+        onChange(inputValue);
+      }
+      // Si es negativo o inválido, mantener el valor anterior
+    } else {
+      onChange(e.target.value);
+    }
+  };
+
+  return (
+    <div className="space-y-2">
+      <label className="text-[10px] font-black text-dim uppercase tracking-widest ml-1">{label}</label>
+      <input 
+        type={type} 
+        min={type === "number" ? "0" : undefined}
+        value={value} 
+        onChange={handleChange} 
+        className="w-full bg-input-custom border border-main p-4 rounded-xl text-xs font-bold text-bright outline-none focus:border-accent transition-all uppercase" 
+      />
+    </div>
+  );
+};
 
 export default TrainingPlans;
