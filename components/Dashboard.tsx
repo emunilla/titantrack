@@ -138,17 +138,24 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
           calories: w.cardioData.calories,
           avgHeartRate: w.cardioData.avgHeartRate
         }),
-        ...(w.swimmingData && w.swimmingData.poolLength && w.swimmingData.sets && w.swimmingData.sets.length > 0 && {
-          // Calcular distancia total de natación (poolLength * total de largos)
-          distance: (w.swimmingData.poolLength * w.swimmingData.sets.reduce((sum, set) => sum + (set.lengths || 0), 0)) / 1000, // Convertir a km
-          calories: w.swimmingData.calories,
-          // Promedio de pulsaciones de todas las series
-          avgHeartRate: w.swimmingData.sets
-            .filter(s => s.avgHeartRate)
-            .length > 0 ? w.swimmingData.sets
-            .filter(s => s.avgHeartRate)
-            .reduce((sum, s) => sum + (s.avgHeartRate || 0), 0) / w.swimmingData.sets.filter(s => s.avgHeartRate).length : undefined
-        }),
+        ...(w.swimmingData && (() => {
+          const sd = w.swimmingData;
+          if (!sd.poolLength || !sd.sets || sd.sets.length === 0) return null;
+          
+          const totalLengths = sd.sets.reduce((sum, set) => sum + (set.lengths || 0), 0);
+          const distance = (sd.poolLength * totalLengths) / 1000; // Convertir a km
+          
+          const heartRates = sd.sets.filter(s => s.avgHeartRate).map(s => s.avgHeartRate!);
+          const avgHeartRate = heartRates.length > 0 
+            ? heartRates.reduce((sum, hr) => sum + hr, 0) / heartRates.length 
+            : undefined;
+          
+          return {
+            distance,
+            calories: sd.calories,
+            avgHeartRate
+          };
+        })()),
         ...(w.groupClassData && {
           timeMinutes: w.groupClassData.timeMinutes,
           calories: w.groupClassData.calories,
