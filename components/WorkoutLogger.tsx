@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { SportType, Workout, StrengthSet, TrainingPlan, IndividualSet } from '../types';
-import { Plus, Trash2, X, Save, Layers, Rocket, Dumbbell, Flame, Zap, Search, Image as ImageIcon, Users, Activity } from 'lucide-react';
+import { SportType, Workout, StrengthSet, TrainingPlan, IndividualSet, SwimmingStyle, SwimmingSet, SwimmingEquipment } from '../types';
+import { Plus, Trash2, X, Save, Layers, Rocket, Dumbbell, Flame, Zap, Search, Image as ImageIcon, Users, Activity, Waves } from 'lucide-react';
 
 interface Props {
   onSave: (workout: Workout) => void;
@@ -158,7 +158,10 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
   const [selectedClass, setSelectedClass] = useState(GROUP_CLASSES[0]);
   const [notes, setNotes] = useState('');
   const [planId, setPlanId] = useState<string | undefined>(undefined);
-  // Estados para natación (revertidos - usar cardioData)
+  // Estados para natación
+  const [swimmingSets, setSwimmingSets] = useState<SwimmingSet[]>([
+    { style: SwimmingStyle.Freestyle, lengths: 4, equipment: SwimmingEquipment.None }
+  ]);
 
   useEffect(() => {
     if (editWorkout) {
@@ -173,12 +176,8 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
         setHeartRate(editWorkout.cardioData.avgHeartRate?.toString() || '');
         setCalories(editWorkout.cardioData.calories?.toString() || '');
       }
-      // Natación ahora usa cardioData
-      if (editWorkout.type === SportType.Swimming && editWorkout.cardioData) {
-        setDistance(editWorkout.cardioData.distance.toString());
-        setTime(editWorkout.cardioData.timeMinutes.toString());
-        setHeartRate(editWorkout.cardioData.avgHeartRate?.toString() || '');
-        setCalories(editWorkout.cardioData.calories?.toString() || '');
+      if (editWorkout.swimmingData) {
+        setSwimmingSets(editWorkout.swimmingData.sets || []);
       }
       if (editWorkout.groupClassData) {
         setSelectedClass(editWorkout.groupClassData.classType);
@@ -253,6 +252,10 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
           }
           return s;
         });
+    } else if (type === SportType.Swimming) {
+      workout.swimmingData = {
+        sets: swimmingSets
+      };
     } else if (type === SportType.GroupClass) {
       workout.groupClassData = { 
         classType: selectedClass, 
@@ -326,6 +329,24 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
       individualSets2: isBiSet ? [] : undefined
     };
     setStrengthSets(newSets);
+  };
+
+  const addSwimmingSet = () => {
+    setSwimmingSets([...swimmingSets, { 
+      style: SwimmingStyle.Freestyle, 
+      lengths: 4, 
+      equipment: SwimmingEquipment.None 
+    }]);
+  };
+
+  const updateSwimmingSet = (idx: number, updates: Partial<SwimmingSet>) => {
+    const newSets = [...swimmingSets];
+    newSets[idx] = { ...newSets[idx], ...updates };
+    setSwimmingSets(newSets);
+  };
+
+  const removeSwimmingSet = (idx: number) => {
+    setSwimmingSets(swimmingSets.filter((_, i) => i !== idx));
   };
 
 
@@ -600,13 +621,91 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
           </div>
         )}
 
-        {/* Inputs de Cardio / Natación */}
-        {(type === SportType.Running || type === SportType.Swimming || type === SportType.Cycling) && (
+        {/* Inputs de Cardio (Running y Cycling) */}
+        {(type === SportType.Running || type === SportType.Cycling) && (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 animate-fade-in">
              <TechInputGroup label="Distancia (KM)" value={distance} onChange={setDistance} type="number" step="0.01" />
              <TechInputGroup label="Tiempo (MIN)" value={time} onChange={setTime} type="number" />
              <TechInputGroup label="Pulsaciones (AVG)" value={heartRate} onChange={setHeartRate} type="number" />
              <TechInputGroup label="Calorías (KCAL)" value={calories} onChange={setCalories} type="number" />
+          </div>
+        )}
+
+        {/* Inputs de Natación con Series */}
+        {type === SportType.Swimming && (
+          <div className="space-y-6 animate-fade-in">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black text-dim uppercase tracking-widest flex items-center gap-2">
+                  <Waves size={12} className="accent-color" /> Series de Natación
+                </label>
+                <button
+                  type="button"
+                  onClick={addSwimmingSet}
+                  className="text-[9px] font-black text-accent hover:text-bright transition-all flex items-center gap-1"
+                >
+                  <Plus size={12} /> Añadir Serie
+                </button>
+              </div>
+
+              {swimmingSets.map((set, idx) => (
+                <div key={idx} className="p-4 bg-card-inner border border-main rounded-xl space-y-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] font-black text-dim uppercase">Serie #{idx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeSwimmingSet(idx)}
+                      className="p-2 text-red-500 hover:bg-red-500/10 rounded transition-all"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    {/* Estilo */}
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-dim uppercase tracking-widest">Estilo</label>
+                      <select
+                        value={set.style}
+                        onChange={(e) => updateSwimmingSet(idx, { style: e.target.value as SwimmingStyle })}
+                        className="w-full bg-input-custom border border-main p-2 rounded-lg text-xs font-bold text-bright outline-none focus:border-accent uppercase"
+                      >
+                        <option value={SwimmingStyle.Freestyle}>Crol</option>
+                        <option value={SwimmingStyle.Breaststroke}>Braza</option>
+                        <option value={SwimmingStyle.Backstroke}>Espalda</option>
+                        <option value={SwimmingStyle.Butterfly}>Mariposa</option>
+                      </select>
+                    </div>
+
+                    {/* Nº Largos */}
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-dim uppercase tracking-widest">Nº Largos</label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={set.lengths}
+                        onChange={(e) => updateSwimmingSet(idx, { lengths: parseInt(e.target.value) || 1 })}
+                        className="w-full bg-input-custom border border-main p-2 rounded-lg text-xs font-bold text-bright outline-none focus:border-accent text-center"
+                      />
+                    </div>
+
+                    {/* Material */}
+                    <div className="space-y-1">
+                      <label className="text-[8px] font-black text-dim uppercase tracking-widest">Material</label>
+                      <select
+                        value={set.equipment}
+                        onChange={(e) => updateSwimmingSet(idx, { equipment: e.target.value as SwimmingEquipment })}
+                        className="w-full bg-input-custom border border-main p-2 rounded-lg text-xs font-bold text-bright outline-none focus:border-accent uppercase"
+                      >
+                        <option value={SwimmingEquipment.None}>Libre</option>
+                        <option value={SwimmingEquipment.Fins}>Aletas</option>
+                        <option value={SwimmingEquipment.Paddles}>Palas</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 

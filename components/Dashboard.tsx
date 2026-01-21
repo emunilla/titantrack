@@ -86,7 +86,7 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
       .forEach(w => {
         if (w.type === SportType.Running) {
           types.add({value: 'Running', label: 'Carrera'});
-        } else if (w.type === SportType.Swimming && w.cardioData) {
+        } else if (w.type === SportType.Swimming && w.swimmingData) {
           types.add({value: 'Swimming', label: 'Natación'});
         } else if (w.type === SportType.Cycling) {
           types.add({value: 'Cycling', label: 'Ciclismo'});
@@ -122,7 +122,7 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
         return w.type === SportType.GroupClass && w.groupClassData?.classType === classType;
       }
       if (selectedCardioType === 'Swimming') {
-        return w.type === SportType.Swimming && w.cardioData;
+        return w.type === SportType.Swimming && w.swimmingData;
       }
       return w.type === selectedCardioType as SportType;
     });
@@ -146,6 +146,16 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
           };
         }
 
+        // Datos de natación
+        if (w.swimmingData && w.swimmingData.sets && w.swimmingData.sets.length > 0) {
+          const totalLengths = w.swimmingData.sets.reduce((sum, set) => sum + (set.lengths || 0), 0);
+          return {
+            ...baseData,
+            // Para natación, usamos el número total de largos como "distancia" aproximada
+            distance: totalLengths,
+            // No tenemos tiempo ni pulsaciones en este formato simplificado
+          };
+        }
 
         // Datos de clase colectiva
         if (w.groupClassData) {

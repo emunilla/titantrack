@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { AppData, SportType, Workout, UserProfile, TrainingPlan, StrengthSet, IndividualSet } from './types';
+import { AppData, SportType, Workout, UserProfile, TrainingPlan, StrengthSet, IndividualSet, SwimmingStyle, SwimmingEquipment } from './types';
 import Dashboard from './components/Dashboard';
 import WorkoutLogger from './components/WorkoutLogger';
 import AICoach from './components/AICoach';
@@ -88,7 +88,7 @@ const App: React.FC = () => {
         },
         workouts: workouts.map((w: any) => ({
           id: w.id, date: w.date, type: w.type as SportType, strengthData: w.strength_data,
-          cardioData: w.cardio_data, groupClassData: w.group_class_data, notes: w.notes, planId: w.plan_id
+          cardioData: w.cardio_data, swimmingData: w.swimming_data, groupClassData: w.group_class_data, notes: w.notes, planId: w.plan_id
         })),
         weightHistory,
         plans,
@@ -116,6 +116,7 @@ const App: React.FC = () => {
         type: workout.type,
         strength_data: workout.strengthData,
         cardio_data: workout.cardioData,
+        swimming_data: workout.swimmingData,
         group_class_data: workout.groupClassData,
         notes: workout.notes,
         plan_id: workout.planId
@@ -611,16 +612,6 @@ CREATE POLICY "RLS_Nutrition" ON nutrition_guidelines FOR ALL USING (auth.uid() 
                               </div>
                             )}
 
-                            {/* Detalle de Cardio (incluye Natación) */}
-                            {(w.type === SportType.Running || w.type === SportType.Swimming || w.type === SportType.Cycling) && w.cardioData && (
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                <MetricDetail label="Distancia" value={`${w.cardioData.distance} km`} icon={<Map size={14}/>} />
-                                <MetricDetail label="Duración" value={`${w.cardioData.timeMinutes} min`} icon={<Clock size={14}/>} />
-                                {w.cardioData.avgHeartRate && <MetricDetail label="Pulsaciones" value={`${w.cardioData.avgHeartRate} ppm`} icon={<Heart size={14}/>} />}
-                                {w.cardioData.calories && <MetricDetail label="Calorías" value={`${w.cardioData.calories} kcal`} icon={<Flame size={14}/>} />}
-                                {w.cardioData.pace && <MetricDetail label="Ritmo Medio" value={w.cardioData.pace} icon={<Activity size={14}/>} />}
-                              </div>
-                            )}
 
                             {/* Detalle de Clase Colectiva */}
                             {w.type === SportType.GroupClass && w.groupClassData && (
