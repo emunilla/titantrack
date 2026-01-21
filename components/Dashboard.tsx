@@ -86,7 +86,7 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
       .forEach(w => {
         if (w.type === SportType.Running) {
           types.add({value: 'Running', label: 'Carrera'});
-        } else if (w.type === SportType.Swimming && w.swimmingData) {
+        } else if (w.type === SportType.Swimming && w.cardioData) {
           types.add({value: 'Swimming', label: 'Natación'});
         } else if (w.type === SportType.Cycling) {
           types.add({value: 'Cycling', label: 'Ciclismo'});
@@ -122,7 +122,7 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
         return w.type === SportType.GroupClass && w.groupClassData?.classType === classType;
       }
       if (selectedCardioType === 'Swimming') {
-        return w.type === SportType.Swimming && w.swimmingData;
+        return w.type === SportType.Swimming && w.cardioData;
       }
       return w.type === selectedCardioType as SportType;
     });
@@ -146,26 +146,6 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
           };
         }
 
-        // Datos de natación
-        if (w.swimmingData) {
-          const sd = w.swimmingData;
-          if (sd.poolLength && sd.sets && Array.isArray(sd.sets) && sd.sets.length > 0) {
-            const totalLengths = sd.sets.reduce((sum, set) => sum + (set.lengths || 0), 0);
-            const distance = (sd.poolLength * totalLengths) / 1000; // Convertir a km
-            
-            const heartRates = sd.sets.filter(s => s.avgHeartRate).map(s => s.avgHeartRate!);
-            const avgHeartRate = heartRates.length > 0 
-              ? heartRates.reduce((sum, hr) => sum + hr, 0) / heartRates.length 
-              : undefined;
-            
-            return {
-              ...baseData,
-              distance,
-              calories: sd.calories,
-              avgHeartRate
-            };
-          }
-        }
 
         // Datos de clase colectiva
         if (w.groupClassData) {

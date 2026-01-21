@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { AppData, SportType, Workout, UserProfile, TrainingPlan, StrengthSet, IndividualSet, SwimmingStyle, SwimmingEquipment } from './types';
+import { AppData, SportType, Workout, UserProfile, TrainingPlan, StrengthSet, IndividualSet } from './types';
 import Dashboard from './components/Dashboard';
 import WorkoutLogger from './components/WorkoutLogger';
 import AICoach from './components/AICoach';
@@ -87,15 +87,8 @@ const App: React.FC = () => {
           nutritionInfo: profile.nutrition_info || undefined
         },
         workouts: workouts.map((w: any) => ({
-          id: w.id, 
-          date: w.date, 
-          type: w.type as SportType, 
-          strengthData: w.strength_data,
-          cardioData: w.cardio_data, 
-          swimmingData: w.swimming_data && typeof w.swimming_data === 'object' ? w.swimming_data : undefined,
-          groupClassData: w.group_class_data, 
-          notes: w.notes, 
-          planId: w.plan_id
+          id: w.id, date: w.date, type: w.type as SportType, strengthData: w.strength_data,
+          cardioData: w.cardio_data, groupClassData: w.group_class_data, notes: w.notes, planId: w.plan_id
         })),
         weightHistory,
         plans,
@@ -123,7 +116,6 @@ const App: React.FC = () => {
         type: workout.type,
         strength_data: workout.strengthData,
         cardio_data: workout.cardioData,
-        swimming_data: workout.swimmingData,
         group_class_data: workout.groupClassData,
         notes: workout.notes,
         plan_id: workout.planId
@@ -619,50 +611,14 @@ CREATE POLICY "RLS_Nutrition" ON nutrition_guidelines FOR ALL USING (auth.uid() 
                               </div>
                             )}
 
-                            {/* Detalle de Natación */}
-                            {w.type === SportType.Swimming && w.swimmingData && (
-                              <div className="space-y-4">
-                                {w.swimmingData.poolLength && (
-                                  <div className="bg-card-inner p-3 rounded-lg border border-main">
-                                    <p className="text-[9px] font-black text-dim uppercase tracking-widest mb-2">Longitud de Piscina</p>
-                                    <p className="text-sm font-black text-bright">{w.swimmingData.poolLength} metros</p>
-                                  </div>
-                                )}
-                                
-                                {w.swimmingData.sets && w.swimmingData.sets.length > 0 && (
-                                  <div className="space-y-2">
-                                    {w.swimmingData.sets.map((set, idx) => (
-                                      <div key={idx} className="p-3 bg-card-inner border border-main rounded-lg">
-                                        <div className="flex items-center justify-between">
-                                          <div>
-                                            <p className="text-xs font-black text-bright uppercase">Serie #{idx + 1}</p>
-                                            <p className="text-[9px] text-dim">
-                                              {set.style === SwimmingStyle.Freestyle ? 'Crol' :
-                                               set.style === SwimmingStyle.Breaststroke ? 'Braza' :
-                                               set.style === SwimmingStyle.Backstroke ? 'Espalda' : 'Mariposa'}
-                                              {' • '}{set.lengths} largos
-                                              {set.equipment && set.equipment !== SwimmingEquipment.None && 
-                                                ` • ${set.equipment === SwimmingEquipment.Fins ? 'Aletas' : 'Palas'}`}
-                                            </p>
-                                          </div>
-                                          {set.avgHeartRate && (
-                                            <div className="text-right">
-                                              <p className="text-xs font-black text-bright">{set.avgHeartRate} ppm</p>
-                                              <p className="text-[8px] text-dim uppercase">Pulsaciones</p>
-                                            </div>
-                                          )}
-                                        </div>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                                
-                                {w.swimmingData.calories && (
-                                  <div className="bg-card-inner p-3 rounded-lg border border-main">
-                                    <p className="text-[9px] font-black text-dim uppercase tracking-widest">Calorías Totales</p>
-                                    <p className="text-sm font-black text-bright">{w.swimmingData.calories} kcal</p>
-                                  </div>
-                                )}
+                            {/* Detalle de Cardio (incluye Natación) */}
+                            {(w.type === SportType.Running || w.type === SportType.Swimming || w.type === SportType.Cycling) && w.cardioData && (
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <MetricDetail label="Distancia" value={`${w.cardioData.distance} km`} icon={<Map size={14}/>} />
+                                <MetricDetail label="Duración" value={`${w.cardioData.timeMinutes} min`} icon={<Clock size={14}/>} />
+                                {w.cardioData.avgHeartRate && <MetricDetail label="Pulsaciones" value={`${w.cardioData.avgHeartRate} ppm`} icon={<Heart size={14}/>} />}
+                                {w.cardioData.calories && <MetricDetail label="Calorías" value={`${w.cardioData.calories} kcal`} icon={<Flame size={14}/>} />}
+                                {w.cardioData.pace && <MetricDetail label="Ritmo Medio" value={w.cardioData.pace} icon={<Activity size={14}/>} />}
                               </div>
                             )}
 
