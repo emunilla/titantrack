@@ -138,10 +138,8 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
           calories: w.cardioData.calories,
           avgHeartRate: w.cardioData.avgHeartRate
         }),
-        ...(w.swimmingData && (() => {
+        ...(w.swimmingData && w.swimmingData.poolLength && w.swimmingData.sets && w.swimmingData.sets.length > 0 ? (() => {
           const sd = w.swimmingData;
-          if (!sd.poolLength || !sd.sets || sd.sets.length === 0) return null;
-          
           const totalLengths = sd.sets.reduce((sum, set) => sum + (set.lengths || 0), 0);
           const distance = (sd.poolLength * totalLengths) / 1000; // Convertir a km
           
@@ -155,7 +153,7 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
             calories: sd.calories,
             avgHeartRate
           };
-        })()),
+        })() : {}),
         ...(w.groupClassData && {
           timeMinutes: w.groupClassData.timeMinutes,
           calories: w.groupClassData.calories,
