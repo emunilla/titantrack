@@ -615,36 +615,40 @@ CREATE POLICY "RLS_Nutrition" ON nutrition_guidelines FOR ALL USING (auth.uid() 
                             {/* Detalle de Natación */}
                             {w.type === SportType.Swimming && w.swimmingData && (
                               <div className="space-y-4">
-                                <div className="bg-card-inner p-3 rounded-lg border border-main">
-                                  <p className="text-[9px] font-black text-dim uppercase tracking-widest mb-2">Longitud de Piscina</p>
-                                  <p className="text-sm font-black text-bright">{w.swimmingData.poolLength} metros</p>
-                                </div>
+                                {w.swimmingData.poolLength && (
+                                  <div className="bg-card-inner p-3 rounded-lg border border-main">
+                                    <p className="text-[9px] font-black text-dim uppercase tracking-widest mb-2">Longitud de Piscina</p>
+                                    <p className="text-sm font-black text-bright">{w.swimmingData.poolLength} metros</p>
+                                  </div>
+                                )}
                                 
-                                <div className="space-y-2">
-                                  {w.swimmingData.sets.map((set, idx) => (
-                                    <div key={idx} className="p-3 bg-card-inner border border-main rounded-lg">
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="text-xs font-black text-bright uppercase">Serie #{idx + 1}</p>
-                                          <p className="text-[9px] text-dim">
-                                            {set.style === SwimmingStyle.Freestyle ? 'Crol' :
-                                             set.style === SwimmingStyle.Breaststroke ? 'Braza' :
-                                             set.style === SwimmingStyle.Backstroke ? 'Espalda' : 'Mariposa'}
-                                            {' • '}{set.lengths} largos
-                                            {set.equipment && set.equipment !== SwimmingEquipment.None && 
-                                              ` • ${set.equipment === SwimmingEquipment.Fins ? 'Aletas' : 'Palas'}`}
-                                          </p>
-                                        </div>
-                                        {set.avgHeartRate && (
-                                          <div className="text-right">
-                                            <p className="text-xs font-black text-bright">{set.avgHeartRate} ppm</p>
-                                            <p className="text-[8px] text-dim uppercase">Pulsaciones</p>
+                                {w.swimmingData.sets && w.swimmingData.sets.length > 0 && (
+                                  <div className="space-y-2">
+                                    {w.swimmingData.sets.map((set, idx) => (
+                                      <div key={idx} className="p-3 bg-card-inner border border-main rounded-lg">
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <p className="text-xs font-black text-bright uppercase">Serie #{idx + 1}</p>
+                                            <p className="text-[9px] text-dim">
+                                              {set.style === SwimmingStyle.Freestyle ? 'Crol' :
+                                               set.style === SwimmingStyle.Breaststroke ? 'Braza' :
+                                               set.style === SwimmingStyle.Backstroke ? 'Espalda' : 'Mariposa'}
+                                              {' • '}{set.lengths} largos
+                                              {set.equipment && set.equipment !== SwimmingEquipment.None && 
+                                                ` • ${set.equipment === SwimmingEquipment.Fins ? 'Aletas' : 'Palas'}`}
+                                            </p>
                                           </div>
-                                        )}
+                                          {set.avgHeartRate && (
+                                            <div className="text-right">
+                                              <p className="text-xs font-black text-bright">{set.avgHeartRate} ppm</p>
+                                              <p className="text-[8px] text-dim uppercase">Pulsaciones</p>
+                                            </div>
+                                          )}
+                                        </div>
                                       </div>
-                                    </div>
-                                  ))}
-                                </div>
+                                    ))}
+                                  </div>
+                                )}
                                 
                                 {w.swimmingData.calories && (
                                   <div className="bg-card-inner p-3 rounded-lg border border-main">

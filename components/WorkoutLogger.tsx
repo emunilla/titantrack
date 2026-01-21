@@ -173,7 +173,7 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
         setCalories(editWorkout.cardioData.calories?.toString() || '');
       }
       if (editWorkout.swimmingData) {
-        setPoolLength(editWorkout.swimmingData.poolLength.toString());
+        setPoolLength((editWorkout.swimmingData.poolLength || 25).toString());
         setSwimmingSets(editWorkout.swimmingData.sets || []);
         setCalories(editWorkout.swimmingData.calories?.toString() || '');
       }
