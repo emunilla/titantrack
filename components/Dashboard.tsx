@@ -86,7 +86,7 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
       .forEach(w => {
         if (w.type === SportType.Running) {
           types.add({value: 'Running', label: 'Carrera'});
-        } else if (w.type === SportType.Swimming) {
+        } else if (w.type === SportType.Swimming && w.swimmingData) {
           types.add({value: 'Swimming', label: 'Natación'});
         } else if (w.type === SportType.Cycling) {
           types.add({value: 'Cycling', label: 'Ciclismo'});
@@ -121,6 +121,9 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
         const classType = selectedCardioType.replace('GroupClass_', '');
         return w.type === SportType.GroupClass && w.groupClassData?.classType === classType;
       }
+      if (selectedCardioType === 'Swimming') {
+        return w.type === SportType.Swimming && w.swimmingData;
+      }
       return w.type === selectedCardioType as SportType;
     });
 
@@ -134,6 +137,24 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
           timeMinutes: w.cardioData.timeMinutes,
           calories: w.cardioData.calories,
           avgHeartRate: w.cardioData.avgHeartRate
+        }),
+        ...(w.swimmingData && {
+          // Calcular distancia total de natación (poolLength * total de largos)
+          distance: w.swimmingData.poolLength * w.swimmingData.sets.reduce((sum, set) => sum + set.lengths, 0) / 1000, // Convertir a km
+          calories: w.swimmingData.calories,
+          // Promedio de pulsaciones de todas las series
+          avgHeartRate: w.swimmingData.sets
+            .filter(s => s.avgHeartRate)
+            .reduce((sum, s, _, arr) => sum + (s.avgHeartRate || 0) / arr.length, 0) || undefined
+        }),
+        ...(w.swimmingData && {
+          // Calcular distancia total de natación (poolLength * total de largos)
+          distance: w.swimmingData.poolLength * w.swimmingData.sets.reduce((sum, set) => sum + set.lengths, 0) / 1000, // Convertir a km
+          calories: w.swimmingData.calories,
+          // Promedio de pulsaciones de todas las series
+          avgHeartRate: w.swimmingData.sets
+            .filter(s => s.avgHeartRate)
+            .reduce((sum, s, _, arr) => sum + (s.avgHeartRate || 0) / arr.length, 0) || undefined
         }),
         ...(w.groupClassData && {
           timeMinutes: w.groupClassData.timeMinutes,

@@ -45,12 +45,40 @@ export interface GroupClassMetrics {
   calories?: number;
 }
 
+export enum SwimmingStyle {
+  Freestyle = 'Freestyle',      // Crol
+  Breaststroke = 'Breaststroke', // Braza
+  Backstroke = 'Backstroke',    // Espalda
+  Butterfly = 'Butterfly'        // Mariposa
+}
+
+export enum SwimmingEquipment {
+  None = 'None',      // Sin material
+  Fins = 'Fins',      // Aletas
+  Paddles = 'Paddles' // Palas
+}
+
+export interface SwimmingSet {
+  style: SwimmingStyle;
+  lengths: number;              // Nº largos
+  avgHeartRate?: number;        // Pulsaciones medias
+  equipment?: SwimmingEquipment; // Material
+}
+
+export interface SwimmingMetrics {
+  poolLength: number;           // Longitud de la piscina (metros) - global a la sesión
+  sets: SwimmingSet[];          // Array de series
+  totalTimeMinutes?: number;    // Tiempo total (opcional)
+  calories?: number;            // Calorías totales (opcional)
+}
+
 export interface Workout {
   id: string;
   date: string;
   type: SportType;
   strengthData?: StrengthSet[];
   cardioData?: CardioMetrics;
+  swimmingData?: SwimmingMetrics;  // Nueva propiedad
   groupClassData?: GroupClassMetrics;
   notes?: string;
   planId?: string; // Vínculo con el plan

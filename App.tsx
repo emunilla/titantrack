@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { AppData, SportType, Workout, UserProfile, TrainingPlan, StrengthSet, IndividualSet } from './types';
+import { AppData, SportType, Workout, UserProfile, TrainingPlan, StrengthSet, IndividualSet, SwimmingStyle, SwimmingEquipment } from './types';
 import Dashboard from './components/Dashboard';
 import WorkoutLogger from './components/WorkoutLogger';
 import AICoach from './components/AICoach';
@@ -116,6 +116,7 @@ const App: React.FC = () => {
         type: workout.type,
         strength_data: workout.strengthData,
         cardio_data: workout.cardioData,
+        swimming_data: workout.swimmingData,
         group_class_data: workout.groupClassData,
         notes: workout.notes,
         plan_id: workout.planId
@@ -158,51 +159,52 @@ const App: React.FC = () => {
 
   const sortedDates = Object.keys(workoutsGroupedByDate).sort((a, b) => b.localeCompare(a));
 
-  const SQL_SETUP = `-- ESQUEMA COMPLETO PARA TITAN BUILDER
--- Ejecuta esto en el SQL Editor de Supabase
+      const SQL_SETUP = `-- ESQUEMA COMPLETO PARA TITAN BUILDER
+    -- Ejecuta esto en el SQL Editor de Supabase
 
--- 1. TABLA DE PERFILES (Vinculada a Auth)
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  name text NOT NULL,
-  goal text,
-  initial_weight double precision,
-  height double precision,
-  resting_heart_rate integer,
-  avatar_color text,
-  nutrition_info jsonb,
-  created_at timestamp with time zone DEFAULT now()
-);
+    -- 1. TABLA DE PERFILES (Vinculada a Auth)
+    CREATE TABLE IF NOT EXISTS public.profiles (
+      id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+      name text NOT NULL,
+      goal text,
+      initial_weight double precision,
+      height double precision,
+      resting_heart_rate integer,
+      avatar_color text,
+      nutrition_info jsonb,
+      created_at timestamp with time zone DEFAULT now()
+    );
 
--- 2. TABLA DE PLANES (Misiones)
-CREATE TABLE IF NOT EXISTS public.training_plans (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  name text NOT NULL,
-  type text NOT NULL,
-  objective text,
-  frequency integer,
-  duration_weeks integer,
-  schedule text,
-  time_per_session integer,
-  status text DEFAULT 'active',
-  content jsonb NOT NULL,
-  created_at timestamp with time zone DEFAULT now()
-);
+    -- 2. TABLA DE PLANES (Misiones)
+    CREATE TABLE IF NOT EXISTS public.training_plans (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      profile_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+      name text NOT NULL,
+      type text NOT NULL,
+      objective text,
+      frequency integer,
+      duration_weeks integer,
+      schedule text,
+      time_per_session integer,
+      status text DEFAULT 'active',
+      content jsonb NOT NULL,
+      created_at timestamp with time zone DEFAULT now()
+    );
 
--- 3. TABLA DE ENTRENAMIENTOS
-CREATE TABLE IF NOT EXISTS public.workouts (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  profile_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  plan_id uuid REFERENCES public.training_plans(id) ON DELETE SET NULL,
-  date timestamp with time zone NOT NULL,
-  type text NOT NULL,
-  strength_data jsonb,
-  cardio_data jsonb,
-  group_class_data jsonb,
-  notes text,
-  created_at timestamp with time zone DEFAULT now()
-);
+    -- 3. TABLA DE ENTRENAMIENTOS
+    CREATE TABLE IF NOT EXISTS public.workouts (
+      id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+      profile_id uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+      plan_id uuid REFERENCES public.training_plans(id) ON DELETE SET NULL,
+      date timestamp with time zone NOT NULL,
+      type text NOT NULL,
+      strength_data jsonb,
+      cardio_data jsonb,
+      swimming_data jsonb,
+      group_class_data jsonb,
+      notes text,
+      created_at timestamp with time zone DEFAULT now()
+    );
 
 -- 4. TABLA DE PESO (Historial)
 CREATE TABLE IF NOT EXISTS public.weight_history (
@@ -599,14 +601,57 @@ CREATE POLICY "RLS_Nutrition" ON nutrition_guidelines FOR ALL USING (auth.uid() 
                               </div>
                             )}
 
-                            {/* Detalle de Cardio */}
-                            {(w.type === SportType.Running || w.type === SportType.Swimming || w.type === SportType.Cycling) && w.cardioData && (
+                            {/* Detalle de Cardio (Running y Cycling) */}
+                            {(w.type === SportType.Running || w.type === SportType.Cycling) && w.cardioData && (
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                                 <MetricDetail label="Distancia" value={`${w.cardioData.distance} km`} icon={<Map size={14}/>} />
                                 <MetricDetail label="Duración" value={`${w.cardioData.timeMinutes} min`} icon={<Clock size={14}/>} />
                                 {w.cardioData.avgHeartRate && <MetricDetail label="Pulsaciones" value={`${w.cardioData.avgHeartRate} ppm`} icon={<Heart size={14}/>} />}
                                 {w.cardioData.calories && <MetricDetail label="Calorías" value={`${w.cardioData.calories} kcal`} icon={<Flame size={14}/>} />}
                                 {w.cardioData.pace && <MetricDetail label="Ritmo Medio" value={w.cardioData.pace} icon={<Activity size={14}/>} />}
+                              </div>
+                            )}
+
+                            {/* Detalle de Natación */}
+                            {w.type === SportType.Swimming && w.swimmingData && (
+                              <div className="space-y-4">
+                                <div className="bg-card-inner p-3 rounded-lg border border-main">
+                                  <p className="text-[9px] font-black text-dim uppercase tracking-widest mb-2">Longitud de Piscina</p>
+                                  <p className="text-sm font-black text-bright">{w.swimmingData.poolLength} metros</p>
+                                </div>
+                                
+                                <div className="space-y-2">
+                                  {w.swimmingData.sets.map((set, idx) => (
+                                    <div key={idx} className="p-3 bg-card-inner border border-main rounded-lg">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="text-xs font-black text-bright uppercase">Serie #{idx + 1}</p>
+                                          <p className="text-[9px] text-dim">
+                                            {set.style === SwimmingStyle.Freestyle ? 'Crol' :
+                                             set.style === SwimmingStyle.Breaststroke ? 'Braza' :
+                                             set.style === SwimmingStyle.Backstroke ? 'Espalda' : 'Mariposa'}
+                                            {' • '}{set.lengths} largos
+                                            {set.equipment && set.equipment !== SwimmingEquipment.None && 
+                                              ` • ${set.equipment === SwimmingEquipment.Fins ? 'Aletas' : 'Palas'}`}
+                                          </p>
+                                        </div>
+                                        {set.avgHeartRate && (
+                                          <div className="text-right">
+                                            <p className="text-xs font-black text-bright">{set.avgHeartRate} ppm</p>
+                                            <p className="text-[8px] text-dim uppercase">Pulsaciones</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                                
+                                {w.swimmingData.calories && (
+                                  <div className="bg-card-inner p-3 rounded-lg border border-main">
+                                    <p className="text-[9px] font-black text-dim uppercase tracking-widest">Calorías Totales</p>
+                                    <p className="text-sm font-black text-bright">{w.swimmingData.calories} kcal</p>
+                                  </div>
+                                )}
                               </div>
                             )}
 

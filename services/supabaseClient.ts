@@ -80,7 +80,11 @@ export const db = {
     async save(workout: any) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No autenticado");
-      const { data, error } = await supabase.from('workouts').upsert({ ...workout, profile_id: user.id }).select().single();
+      const { data, error } = await supabase.from('workouts').upsert({ 
+        ...workout, 
+        profile_id: user.id,
+        swimming_data: workout.swimmingData || null
+      }).select().single();
       if (error) throw error;
       return data;
     },
