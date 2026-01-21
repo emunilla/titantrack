@@ -128,38 +128,57 @@ const Dashboard: React.FC<Props> = ({ data, onAddWeight, onViewHistory }) => {
     });
 
     const cardioWorkouts = filteredWorkouts
-      .map(w => ({
-        date: new Date(w.date).toISOString(),
-        dateFormatted: new Date(w.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
-        type: w.type,
-        ...(w.cardioData && {
-          distance: w.cardioData.distance,
-          timeMinutes: w.cardioData.timeMinutes,
-          calories: w.cardioData.calories,
-          avgHeartRate: w.cardioData.avgHeartRate
-        }),
-        ...(w.swimmingData && w.swimmingData.poolLength && w.swimmingData.sets && w.swimmingData.sets.length > 0 ? (() => {
-          const sd = w.swimmingData;
-          const totalLengths = sd.sets.reduce((sum, set) => sum + (set.lengths || 0), 0);
-          const distance = (sd.poolLength * totalLengths) / 1000; // Convertir a km
-          
-          const heartRates = sd.sets.filter(s => s.avgHeartRate).map(s => s.avgHeartRate!);
-          const avgHeartRate = heartRates.length > 0 
-            ? heartRates.reduce((sum, hr) => sum + hr, 0) / heartRates.length 
-            : undefined;
-          
+      .map(w => {
+        const baseData = {
+          date: new Date(w.date).toISOString(),
+          dateFormatted: new Date(w.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }),
+          type: w.type
+        };
+
+        // Datos de cardio (Running, Cycling)
+        if (w.cardioData) {
           return {
-            distance,
-            calories: sd.calories,
-            avgHeartRate
+            ...baseData,
+            distance: w.cardioData.distance,
+            timeMinutes: w.cardioData.timeMinutes,
+            calories: w.cardioData.calories,
+            avgHeartRate: w.cardioData.avgHeartRate
           };
-        })() : {}),
-        ...(w.groupClassData && {
-          timeMinutes: w.groupClassData.timeMinutes,
-          calories: w.groupClassData.calories,
-          avgHeartRate: w.groupClassData.avgHeartRate
-        })
-      }))
+        }
+
+        // Datos de natación
+        if (w.swimmingData) {
+          const sd = w.swimmingData;
+          if (sd.poolLength && sd.sets && Array.isArray(sd.sets) && sd.sets.length > 0) {
+            const totalLengths = sd.sets.reduce((sum, set) => sum + (set.lengths || 0), 0);
+            const distance = (sd.poolLength * totalLengths) / 1000; // Convertir a km
+            
+            const heartRates = sd.sets.filter(s => s.avgHeartRate).map(s => s.avgHeartRate!);
+            const avgHeartRate = heartRates.length > 0 
+              ? heartRates.reduce((sum, hr) => sum + hr, 0) / heartRates.length 
+              : undefined;
+            
+            return {
+              ...baseData,
+              distance,
+              calories: sd.calories,
+              avgHeartRate
+            };
+          }
+        }
+
+        // Datos de clase colectiva
+        if (w.groupClassData) {
+          return {
+            ...baseData,
+            timeMinutes: w.groupClassData.timeMinutes,
+            calories: w.groupClassData.calories,
+            avgHeartRate: w.groupClassData.avgHeartRate
+          };
+        }
+
+        return baseData;
+      })
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return cardioWorkouts.map((w) => {

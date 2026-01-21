@@ -87,8 +87,15 @@ const App: React.FC = () => {
           nutritionInfo: profile.nutrition_info || undefined
         },
         workouts: workouts.map((w: any) => ({
-          id: w.id, date: w.date, type: w.type as SportType, strengthData: w.strength_data,
-          cardioData: w.cardio_data, swimmingData: w.swimming_data, groupClassData: w.group_class_data, notes: w.notes, planId: w.plan_id
+          id: w.id, 
+          date: w.date, 
+          type: w.type as SportType, 
+          strengthData: w.strength_data,
+          cardioData: w.cardio_data, 
+          swimmingData: w.swimming_data && typeof w.swimming_data === 'object' ? w.swimming_data : undefined,
+          groupClassData: w.group_class_data, 
+          notes: w.notes, 
+          planId: w.plan_id
         })),
         weightHistory,
         plans,
