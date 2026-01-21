@@ -222,12 +222,24 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
         alert(`El ejercicio "${invalidSet.exercise}" tiene valores inválidos. Las repeticiones y el peso deben ser mayores a 0.`);
         return;
       }
+    } else if (type === SportType.Swimming) {
+      if (swimmingSets.length === 0) {
+        alert('Agrega al menos una serie de natación');
+        return;
+      }
+      const invalidSet = swimmingSets.find(set => set.lengths <= 0);
+      if (invalidSet) {
+        alert('Todas las series deben tener al menos 1 largo');
+        return;
+      }
+      // No validamos distancia ni tiempo para natación - son opcionales
     } else if (type === SportType.GroupClass) {
       if (!time || parseFloat(time) <= 0) {
         alert('La duración debe ser mayor a 0 minutos');
         return;
       }
     } else {
+      // Running y Cycling
       if (!distance || parseFloat(distance) <= 0) {
         alert('La distancia debe ser mayor a 0 km');
         return;
