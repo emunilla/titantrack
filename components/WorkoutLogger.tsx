@@ -171,6 +171,16 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
       setType(editWorkout.type);
       setNotes(editWorkout.notes || '');
       setPlanId(editWorkout.planId);
+      
+      // Resetear todos los estados primero
+      setDistance('');
+      setTime('');
+      setHeartRate('');
+      setCalories('');
+      setSwimmingSets([{ style: SwimmingStyle.Freestyle, lengths: 4, equipment: SwimmingEquipment.None }]);
+      setPoolLength('');
+      setSwimmingDistance('');
+      
       if (editWorkout.strengthData) setStrengthSets(editWorkout.strengthData);
       if (editWorkout.cardioData) {
         setDistance(editWorkout.cardioData.distance.toString());
@@ -179,12 +189,11 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
         setCalories(editWorkout.cardioData.calories?.toString() || '');
       }
       if (editWorkout.swimmingData) {
-        setSwimmingSets(editWorkout.swimmingData.sets || []);
+        // Cargar todas las series, no solo la primera
+        const sets = editWorkout.swimmingData.sets || [];
+        setSwimmingSets(sets.length > 0 ? sets : [{ style: SwimmingStyle.Freestyle, lengths: 4, equipment: SwimmingEquipment.None }]);
         setPoolLength(editWorkout.swimmingData.poolLength?.toString() || '');
         setSwimmingDistance(editWorkout.swimmingData.distance?.toString() || '');
-      }
-      if (editWorkout.swimmingData) {
-        setSwimmingSets(editWorkout.swimmingData.sets || []);
       }
       if (editWorkout.groupClassData) {
         setSelectedClass(editWorkout.groupClassData.classType);
@@ -192,6 +201,11 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
         setHeartRate(editWorkout.groupClassData.avgHeartRate?.toString() || '');
         setCalories(editWorkout.groupClassData.calories?.toString() || '');
       }
+    } else {
+      // Resetear cuando no hay workout para editar
+      setSwimmingSets([{ style: SwimmingStyle.Freestyle, lengths: 4, equipment: SwimmingEquipment.None }]);
+      setPoolLength('');
+      setSwimmingDistance('');
     }
   }, [editWorkout]);
 

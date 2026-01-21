@@ -87,8 +87,15 @@ const App: React.FC = () => {
           nutritionInfo: profile.nutrition_info || undefined
         },
         workouts: workouts.map((w: any) => ({
-          id: w.id, date: w.date, type: w.type as SportType, strengthData: w.strength_data,
-          cardioData: w.cardio_data, swimmingData: w.swimming_data, groupClassData: w.group_class_data, notes: w.notes, planId: w.plan_id
+          id: w.id, 
+          date: w.date, 
+          type: w.type as SportType, 
+          strengthData: w.strength_data,
+          cardioData: w.cardio_data, 
+          swimmingData: w.swimming_data && typeof w.swimming_data === 'object' ? w.swimming_data : (w.swimming_data ? JSON.parse(w.swimming_data) : undefined),
+          groupClassData: w.group_class_data, 
+          notes: w.notes, 
+          planId: w.plan_id
         })),
         weightHistory,
         plans,
@@ -629,25 +636,27 @@ CREATE POLICY "RLS_Nutrition" ON nutrition_guidelines FOR ALL USING (auth.uid() 
                                 )}
                                 
                                 {/* Series */}
-                                <div className="space-y-2">
-                                  {w.swimmingData.sets.map((set, idx) => (
-                                    <div key={idx} className="p-3 bg-card-inner border border-main rounded-lg">
-                                      <div className="flex items-center justify-between">
-                                        <div>
-                                          <p className="text-xs font-black text-bright uppercase">Serie #{idx + 1}</p>
-                                          <p className="text-[9px] text-dim">
-                                            {set.style === SwimmingStyle.Freestyle ? 'Crol' :
-                                             set.style === SwimmingStyle.Breaststroke ? 'Braza' :
-                                             set.style === SwimmingStyle.Backstroke ? 'Espalda' : 'Mariposa'}
-                                            {' • '}{set.lengths} largos
-                                            {' • '}{set.equipment === SwimmingEquipment.None ? 'Libre' :
-                                                     set.equipment === SwimmingEquipment.Fins ? 'Aletas' : 'Palas'}
-                                          </p>
+                                {w.swimmingData.sets && w.swimmingData.sets.length > 0 && (
+                                  <div className="space-y-2">
+                                    {w.swimmingData.sets.map((set, idx) => (
+                                      <div key={idx} className="p-3 bg-card-inner border border-main rounded-lg">
+                                        <div className="flex items-center justify-between">
+                                          <div>
+                                            <p className="text-xs font-black text-bright uppercase">Serie #{idx + 1}</p>
+                                            <p className="text-[9px] text-dim">
+                                              {set.style === SwimmingStyle.Freestyle ? 'Crol' :
+                                               set.style === SwimmingStyle.Breaststroke ? 'Braza' :
+                                               set.style === SwimmingStyle.Backstroke ? 'Espalda' : 'Mariposa'}
+                                              {' • '}{set.lengths} largos
+                                              {' • '}{set.equipment === SwimmingEquipment.None ? 'Libre' :
+                                                       set.equipment === SwimmingEquipment.Fins ? 'Aletas' : 'Palas'}
+                                            </p>
+                                          </div>
                                         </div>
                                       </div>
-                                    </div>
-                                  ))}
-                                </div>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
                             )}
 
