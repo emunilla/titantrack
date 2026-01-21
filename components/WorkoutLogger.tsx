@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { SportType, Workout, StrengthSet, TrainingPlan, IndividualSet, SwimmingStyle, SwimmingSet, SwimmingEquipment } from '../types';
-import { Plus, Trash2, X, Save, Layers, Rocket, Dumbbell, Flame, Zap, Search, Image as ImageIcon, Users, Activity, Waves } from 'lucide-react';
+import { Plus, Trash2, X, Save, Layers, Rocket, Dumbbell, Flame, Zap, Search, Image as ImageIcon, Users, Activity, Waves, Map } from 'lucide-react';
 
 interface Props {
   onSave: (workout: Workout) => void;
@@ -162,6 +162,8 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
   const [swimmingSets, setSwimmingSets] = useState<SwimmingSet[]>([
     { style: SwimmingStyle.Freestyle, lengths: 4, equipment: SwimmingEquipment.None }
   ]);
+  const [poolLength, setPoolLength] = useState('');
+  const [swimmingDistance, setSwimmingDistance] = useState('');
 
   useEffect(() => {
     if (editWorkout) {
@@ -175,6 +177,11 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
         setTime(editWorkout.cardioData.timeMinutes.toString());
         setHeartRate(editWorkout.cardioData.avgHeartRate?.toString() || '');
         setCalories(editWorkout.cardioData.calories?.toString() || '');
+      }
+      if (editWorkout.swimmingData) {
+        setSwimmingSets(editWorkout.swimmingData.sets || []);
+        setPoolLength(editWorkout.swimmingData.poolLength?.toString() || '');
+        setSwimmingDistance(editWorkout.swimmingData.distance?.toString() || '');
       }
       if (editWorkout.swimmingData) {
         setSwimmingSets(editWorkout.swimmingData.sets || []);
@@ -253,7 +260,22 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
           return s;
         });
     } else if (type === SportType.Swimming) {
+      // Calcular distancia automáticamente si no se proporciona
+      let calculatedDistance: number | undefined;
+      if (!swimmingDistance || parseFloat(swimmingDistance) <= 0) {
+        // Calcular: longitud de piscina * suma de largos
+        const poolLengthNum = parseFloat(poolLength) || 0;
+        const totalLengths = swimmingSets.reduce((sum, set) => sum + (set.lengths || 0), 0);
+        if (poolLengthNum > 0 && totalLengths > 0) {
+          calculatedDistance = (poolLengthNum * totalLengths) / 1000; // Convertir a km
+        }
+      } else {
+        calculatedDistance = parseFloat(swimmingDistance);
+      }
+
       workout.swimmingData = {
+        poolLength: poolLength ? parseFloat(poolLength) : undefined,
+        distance: calculatedDistance,
         sets: swimmingSets
       };
     } else if (type === SportType.GroupClass) {
@@ -634,6 +656,64 @@ const WorkoutLogger: React.FC<Props> = ({ onSave, editWorkout, onCancel, activeP
         {/* Inputs de Natación con Series */}
         {type === SportType.Swimming && (
           <div className="space-y-6 animate-fade-in">
+            {/* Campos de sesión: Longitud de piscina y Distancia */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-dim uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <Waves size={12} className="accent-color" /> Longitud de Piscina (metros)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={poolLength}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || val === '-') {
+                      setPoolLength('');
+                      return;
+                    }
+                    const numVal = parseFloat(val);
+                    if (!isNaN(numVal) && numVal >= 0 && isFinite(numVal)) {
+                      setPoolLength(val);
+                    }
+                  }}
+                  placeholder="Ej: 25, 50, 33.33"
+                  className="w-full bg-input-custom border border-main p-4 rounded-xl text-xs font-bold text-bright outline-none focus:border-accent"
+                />
+                <p className="text-[8px] text-dim italic">Usado para calcular distancia automáticamente</p>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-dim uppercase tracking-widest ml-1 flex items-center gap-2">
+                  <Map size={12} className="accent-color" /> Distancia Total (km)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={swimmingDistance}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '' || val === '-') {
+                      setSwimmingDistance('');
+                      return;
+                    }
+                    const numVal = parseFloat(val);
+                    if (!isNaN(numVal) && numVal >= 0 && isFinite(numVal)) {
+                      setSwimmingDistance(val);
+                    }
+                  }}
+                  placeholder="Se calcula automáticamente"
+                  className="w-full bg-input-custom border border-main p-4 rounded-xl text-xs font-bold text-bright outline-none focus:border-accent"
+                />
+                <p className="text-[8px] text-dim italic">
+                  {poolLength && swimmingSets.length > 0 ? 
+                    `Auto: ${((parseFloat(poolLength) || 0) * swimmingSets.reduce((sum, set) => sum + (set.lengths || 0), 0) / 1000).toFixed(2)} km` :
+                    'Se calcula: longitud × total largos'}
+                </p>
+              </div>
+            </div>
+
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <label className="text-[10px] font-black text-dim uppercase tracking-widest flex items-center gap-2">

@@ -15,7 +15,7 @@ import {
   LayoutDashboard, PlusCircle, Sparkles, User, History, Flame,
   Activity, Target, LogOut, Loader2, CalendarDays, Trash2, Settings,
   Scale, Moon, Sun, Ruler, Users, Rocket, Database, Copy, ShieldCheck,
-  ChevronDown, ChevronUp, Clock, Map, Heart, StickyNote, Dumbbell, Layers, Apple
+  ChevronDown, ChevronUp, Clock, Map, Heart, StickyNote, Dumbbell, Layers, Apple, Waves
 } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -612,6 +612,44 @@ CREATE POLICY "RLS_Nutrition" ON nutrition_guidelines FOR ALL USING (auth.uid() 
                               </div>
                             )}
 
+
+                            {/* Detalle de Natación */}
+                            {w.type === SportType.Swimming && w.swimmingData && (
+                              <div className="space-y-4">
+                                {/* Información de sesión */}
+                                {(w.swimmingData.poolLength || w.swimmingData.distance) && (
+                                  <div className="grid grid-cols-2 gap-4">
+                                    {w.swimmingData.poolLength && (
+                                      <MetricDetail label="Longitud Piscina" value={`${w.swimmingData.poolLength} m`} icon={<Waves size={14}/>} />
+                                    )}
+                                    {w.swimmingData.distance && (
+                                      <MetricDetail label="Distancia Total" value={`${w.swimmingData.distance.toFixed(2)} km`} icon={<Map size={14}/>} />
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {/* Series */}
+                                <div className="space-y-2">
+                                  {w.swimmingData.sets.map((set, idx) => (
+                                    <div key={idx} className="p-3 bg-card-inner border border-main rounded-lg">
+                                      <div className="flex items-center justify-between">
+                                        <div>
+                                          <p className="text-xs font-black text-bright uppercase">Serie #{idx + 1}</p>
+                                          <p className="text-[9px] text-dim">
+                                            {set.style === SwimmingStyle.Freestyle ? 'Crol' :
+                                             set.style === SwimmingStyle.Breaststroke ? 'Braza' :
+                                             set.style === SwimmingStyle.Backstroke ? 'Espalda' : 'Mariposa'}
+                                            {' • '}{set.lengths} largos
+                                            {' • '}{set.equipment === SwimmingEquipment.None ? 'Libre' :
+                                                     set.equipment === SwimmingEquipment.Fins ? 'Aletas' : 'Palas'}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
                             {/* Detalle de Clase Colectiva */}
                             {w.type === SportType.GroupClass && w.groupClassData && (

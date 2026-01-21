@@ -65,6 +65,8 @@ export interface SwimmingSet {
 }
 
 export interface SwimmingMetrics {
+  poolLength?: number;           // Longitud de la piscina (metros) - campo de sesión
+  distance?: number;             // Distancia total (km) - campo de sesión, se calcula automáticamente si no se proporciona
   sets: SwimmingSet[];          // Array de series
 }
 
