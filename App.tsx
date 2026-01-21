@@ -88,7 +88,7 @@ const App: React.FC = () => {
         },
         workouts: workouts.map((w: any) => ({
           id: w.id, date: w.date, type: w.type as SportType, strengthData: w.strength_data,
-          cardioData: w.cardio_data, groupClassData: w.group_class_data, notes: w.notes, planId: w.plan_id
+          cardioData: w.cardio_data, swimmingData: w.swimming_data, groupClassData: w.group_class_data, notes: w.notes, planId: w.plan_id
         })),
         weightHistory,
         plans,
