@@ -117,6 +117,18 @@ const App: React.FC = () => {
     setIsFetchingData(true);
     try {
       const isNew = workout.id.length < 15;
+      
+      // Debug: verificar que swimmingData existe para sesiones de natación
+      if (workout.type === SportType.Swimming) {
+        console.log('Guardando sesión de natación:', {
+          swimmingData: workout.swimmingData,
+          hasSwimmingData: !!workout.swimmingData,
+          sets: workout.swimmingData?.sets,
+          poolLength: workout.swimmingData?.poolLength,
+          distance: workout.swimmingData?.distance
+        });
+      }
+      
       await db.workouts.save({
         id: isNew ? undefined : workout.id,
         date: workout.date,
@@ -133,6 +145,7 @@ const App: React.FC = () => {
       setActiveTab('history');
       success(isNew ? 'Sesión registrada exitosamente' : 'Sesión actualizada');
     } catch (err: any) {
+      console.error('Error al guardar workout:', err);
       showError(err.message || "Error al guardar. Verifica la estructura de las tablas en Supabase.");
     } finally { setIsFetchingData(false); }
   };

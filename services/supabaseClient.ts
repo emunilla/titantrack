@@ -80,12 +80,27 @@ export const db = {
     async save(workout: any) {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("No autenticado");
-      const { data, error } = await supabase.from('workouts').upsert({ 
-        ...workout, 
-        profile_id: user.id,
-        swimming_data: workout.swimmingData || null
-      }).select().single();
-      if (error) throw error;
+      
+      // Preparar el objeto para la base de datos (snake_case)
+      const dbWorkout: any = {
+        id: workout.id,
+        date: workout.date,
+        type: workout.type,
+        strength_data: workout.strengthData || workout.strength_data || null,
+        cardio_data: workout.cardioData || workout.cardio_data || null,
+        swimming_data: workout.swimmingData || workout.swimming_data || null,
+        group_class_data: workout.groupClassData || workout.group_class_data || null,
+        notes: workout.notes || null,
+        plan_id: workout.planId || workout.plan_id || null,
+        profile_id: user.id
+      };
+      
+      const { data, error } = await supabase.from('workouts').upsert(dbWorkout).select().single();
+      if (error) {
+        console.error('Error guardando workout:', error);
+        console.error('Datos enviados:', dbWorkout);
+        throw error;
+      }
       return data;
     },
     async delete(workoutId: string) {
