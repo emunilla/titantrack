@@ -18,6 +18,9 @@ Cada sesión DEBE incluir "exercises": array de OBJETOS, cada uno con:
 - "rest": descanso entre series ("90 seg", "2 min")
 - "notes": (opcional) nota técnica breve
 
+USO DE INFORMACIÓN ADICIONAL DEL USUARIO:
+Si el usuario proporciona marcas personales (1RM, repeticiones máximas, etc.) en las instrucciones adicionales, ÚSALAS para calcular porcentajes específicos y hacer recomendaciones más precisas. Por ejemplo, si menciona "Press banca 1RM: 100kg", calcula los porcentajes basándote en ese dato y ajusta las repeticiones según la relación carga-repeticiones.
+
 NUNCA uses descripciones genéricas como "Ejercicios para tren superior". SIEMPRE lista ejercicios CONCRETOS con sus parámetros. NUNCA uses pesos absolutos, solo porcentajes sobre 1RM.`;
 
     case 'Running':
@@ -30,6 +33,16 @@ Cada sesión DEBE incluir "exercises": array de OBJETOS, cada uno con:
 - "rest": descanso entre intervalos si aplica (ej: "2 min caminando", "1 min trote suave")
 - "notes": (opcional) nota técnica o de intensidad
 
+USO DE INFORMACIÓN ADICIONAL DEL USUARIO:
+Si el usuario proporciona ritmos personales (ej: "Ritmo actual 5:30/km", "Mejor marca 5km: 25:00", "Ritmo fácil: 6:00/km", "Ritmo por kilómetro: 5:15/km") en las instrucciones adicionales, ÚSALOS para:
+- Calcular ritmos de entrenamiento específicos basados en sus capacidades actuales
+- Establecer ritmos de intervalos como porcentajes de su ritmo de referencia (ej: "Intervalos al 90% del ritmo actual")
+- Ajustar ritmos de tempo y recuperación según su nivel
+- Progresar de forma realista desde su ritmo actual hacia su objetivo
+- Incluir ritmos específicos en formato "X:XX/km" en lugar de zonas genéricas cuando tengas datos concretos
+
+Ejemplo: Si menciona "Ritmo actual 5:30/km", los intervalos podrían ser "4:50-5:00/km" (90-95% del ritmo actual) y el tempo "5:15/km" (95% del ritmo actual).
+
 NUNCA uses descripciones genéricas. SIEMPRE especifica el tipo de entrenamiento, distancia/tiempo, ritmo e intensidad.`;
 
     case 'Swimming':
@@ -41,7 +54,17 @@ Cada sesión DEBE incluir "exercises": array de OBJETOS, cada uno con:
 - "distance": distancia o número de largos (ej: "200m", "4x50m", "8 largos")
 - "rest": descanso entre series (ej: "30 seg", "1 min")
 - "intensity": intensidad (ej: "Zona 2", "Zona 4", "Máximo", "Recuperación")
-- "notes": (opcional) nota técnica o de material (ej: "Con aletas", "Con palas")
+- "notes": (opcional) nota técnica o de material (ej: "Con aletas", "Con palas"). Si el usuario proporciona tiempos, inclúyelos aquí (ej: "Objetivo: 45-47 seg por 50m")
+
+USO DE INFORMACIÓN ADICIONAL DEL USUARIO:
+Si el usuario proporciona tiempos personales (ej: "Tiempo por 50m crol: 45 seg", "Mejor 100m: 1:30", "Ritmo fácil: 1:00/50m", "Tiempo por largo: 50 seg") en las instrucciones adicionales, ÚSALOS para:
+- Calcular tiempos objetivo específicos para series basados en sus capacidades actuales
+- Establecer tiempos de intervalo como porcentajes de su tiempo de referencia (ej: "Series al 95% del mejor tiempo")
+- Ajustar tiempos de recuperación según su nivel
+- Progresar de forma realista desde su tiempo actual hacia su objetivo
+- Incluir tiempos objetivo específicos en el campo "notes" cuando sea relevante (ej: "notes": "Objetivo: 45-47 seg por 50m")
+
+Ejemplo: Si menciona "Tiempo por 50m: 45 seg", las series de velocidad podrían ser "4x50m a 42-43 seg" (95-97% del tiempo actual) y las de resistencia "8x50m a 48-50 seg" (110-115% del tiempo actual). Incluye estos tiempos objetivo en "notes".
 
 NUNCA uses descripciones genéricas. SIEMPRE especifica estilo, distancia, series, descanso e intensidad.`;
 
@@ -55,6 +78,16 @@ Cada sesión DEBE incluir "exercises": array de OBJETOS, cada uno con:
 - "cadence": cadencia objetivo si aplica (ej: "90 rpm", "100 rpm")
 - "rest": descanso entre intervalos si aplica (ej: "5 min suave", "3 min recuperación")
 - "notes": (opcional) nota técnica o de terreno (ej: "Llano", "Montaña", "Indoor")
+
+USO DE INFORMACIÓN ADICIONAL DEL USUARIO:
+Si el usuario proporciona datos de potencia (ej: "FTP: 250W", "Potencia media actual: 200W", "Mejor potencia 20min: 230W") en las instrucciones adicionales, ÚSALOS para:
+- Calcular zonas de potencia específicas basadas en su FTP o potencia de referencia
+- Establecer intensidades de intervalo como porcentajes de su FTP (ej: "Intervalos al 110% FTP")
+- Ajustar zonas de recuperación según su nivel
+- Progresar de forma realista desde su potencia actual hacia su objetivo
+- Incluir valores de potencia específicos en lugar de zonas genéricas cuando tengas datos concretos
+
+Ejemplo: Si menciona "FTP: 250W", los intervalos podrían ser "5x5min a 275W" (110% FTP) y el tempo "30min a 200W" (80% FTP).
 
 NUNCA uses descripciones genéricas. SIEMPRE especifica tipo de entrenamiento, distancia/tiempo, potencia e intensidad.`;
 
@@ -206,7 +239,7 @@ ATLETA: ${profile.name}, Objetivo Global: ${profile.goal}.
 PARÁMETROS: Deporte ${params.type}, Objetivo ${params.objective}, ${params.frequency} días/semana, ${params.timePerSession} min/sesión, Equipo: ${params.equipment}
 ${CORE_PRINCIPLES}
 ${getFormatInstructions(params.type)}
-${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES DEL USUARIO:\n${params.customPrompt}\n` : ''}
+${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES DEL USUARIO (USA ESTA INFORMACIÓN PARA PERSONALIZAR LOS EJERCICIOS):\n${params.customPrompt}\n\nIMPORTANTE: Si el usuario proporciona datos de rendimiento (ritmos, tiempos, marcas, FTP, 1RM, etc.), ÚSALOS para calcular valores específicos y objetivos realistas en cada ejercicio. No uses valores genéricos cuando tengas información específica del usuario. Personaliza ritmos, tiempos, intensidades y objetivos basándote en sus capacidades actuales.\n` : ''}
 
 Responde en JSON con este formato. En cada "sessions" usa ejercicios/actividades DETALLADOS como en el ejemplo:
 {
@@ -246,7 +279,7 @@ Responde en JSON con este formato. En cada "sessions" usa ejercicios/actividades
           PARÁMETROS: Deporte ${params.type}, Objetivo ${params.objective}, ${params.frequency} días/semana, ${params.timePerSession} min/sesión, Equipo: ${params.equipment}
           ${CORE_PRINCIPLES}
           ${getFormatInstructions(params.type)}
-          ${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES:\n${params.customPrompt}\n` : ''}
+          ${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES DEL USUARIO (USA ESTA INFORMACIÓN PARA PERSONALIZAR LOS EJERCICIOS):\n${params.customPrompt}\n\nIMPORTANTE: Si el usuario proporciona datos de rendimiento (ritmos, tiempos, marcas, FTP, 1RM, etc.), ÚSALOS para calcular valores específicos y objetivos realistas en cada ejercicio. No uses valores genéricos cuando tengas información específica del usuario.\n` : ''}
           Duración 4-12 semanas. En cada "sessions", el array "exercises" debe contener OBJETOS con los campos específicos del tipo de deporte. Ejemplo: ${getFormatExample(params.type)}.
         `;
 
@@ -301,7 +334,7 @@ Responde en JSON con este formato. En cada "sessions" usa ejercicios/actividades
           PARÁMETROS: Deporte ${params.type}, Objetivo ${params.objective}, ${params.frequency} días/semana, ${params.timePerSession} min/sesión, Equipo: ${params.equipment}
           ${CORE_PRINCIPLES}
           ${getFormatInstructions(params.type)}
-          ${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES:\n${params.customPrompt}\n` : ''}
+          ${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES DEL USUARIO (USA ESTA INFORMACIÓN PARA PERSONALIZAR LOS EJERCICIOS):\n${params.customPrompt}\n\nIMPORTANTE: Si el usuario proporciona datos de rendimiento (ritmos, tiempos, marcas, FTP, 1RM, etc.), ÚSALOS para calcular valores específicos y objetivos realistas en cada ejercicio. No uses valores genéricos cuando tengas información específica del usuario.\n` : ''}
           Duración 4-12 semanas. En "exercises" usa OBJETOS con los campos específicos del tipo de deporte. Ejemplo: ${getFormatExample(params.type)}.
         `;
 
@@ -350,7 +383,7 @@ ATLETA: ${profile.name}, Objetivo: ${profile.goal}.
 PARÁMETROS: Deporte ${params.type}, Objetivo ${params.objective}, ${params.frequency} días/semana, ${params.timePerSession} min/sesión, Equipo: ${params.equipment}
 ${CORE_PRINCIPLES}
 ${getFormatInstructions(params.type)}
-${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES:\n${params.customPrompt}\n` : ''}
+${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES DEL USUARIO (USA ESTA INFORMACIÓN PARA PERSONALIZAR LOS EJERCICIOS):\n${params.customPrompt}\n\nIMPORTANTE: Si el usuario proporciona datos de rendimiento (ritmos, tiempos, marcas, FTP, 1RM, etc.), ÚSALOS para calcular valores específicos y objetivos realistas en cada ejercicio. No uses valores genéricos cuando tengas información específica del usuario.\n` : ''}
 Responde en JSON. En cada "sessions", "exercises" debe ser array de OBJETOS con los campos específicos del tipo de deporte. Ejemplo: ${getFormatExample(params.type)}`;
 
         const response = await openai.chat.completions.create({
