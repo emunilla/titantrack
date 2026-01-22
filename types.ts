@@ -92,11 +92,31 @@ export interface WeightEntry {
 
 /** Ejercicio detallado dentro de una sesión de entrenamiento */
 export interface PlanExercise {
-  name: string;           // Ej: "Press militar con barra", "Press banca"
-  sets: number;
-  reps: number | string; // Número o rango "8-10"
+  name: string;           // Nombre del ejercicio/actividad
+  
+  // Campos para Strength
+  sets?: number;
+  reps?: number | string; // Número o rango "8-10"
   weight?: string;       // Ej: "60kg", "70-80% 1RM", "Máximo controlado"
-  rest?: string;         // Ej: "90 seg", "2 min"
+  
+  // Campos para Running
+  distance?: string;    // Ej: "5 km", "10 km", "30 min", "6x400m"
+  pace?: string;         // Ej: "5:00/km", "4:30/km", "Zona 2", "Zona 4"
+  
+  // Campos para Swimming
+  style?: string;        // Ej: "Crol", "Braza", "Espalda", "Mariposa", "Combinado"
+  intensity?: string;    // Ej: "Zona 2", "Zona 4", "Máximo", "Recuperación"
+  
+  // Campos para Cycling
+  power?: string;        // Ej: "Zona 2", "200W", "80% FTP"
+  cadence?: string;     // Ej: "90 rpm", "100 rpm"
+  
+  // Campos para GroupClass
+  duration?: string;    // Ej: "45 min", "60 min"
+  focus?: string;       // Ej: "Fuerza", "Cardio", "Flexibilidad", "Core"
+  
+  // Campos comunes
+  rest?: string;         // Ej: "90 seg", "2 min", "2 min caminando"
   notes?: string;        // Notas opcionales (técnica, variación, etc.)
 }
 

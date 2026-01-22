@@ -14,11 +14,11 @@ Cada sesión DEBE incluir "exercises": array de OBJETOS, cada uno con:
 - "name": ejercicio concreto (ej: "Press militar con barra", "Press banca plano", "Sentadilla trasera", "Peso muerto rumano", "Jalón al pecho", "Remo con barra")
 - "sets": número de series (ej: 3, 4, 5)
 - "reps": repeticiones, número (10) o rango ("8-10", "6-8")
-- "weight": carga en kg ("40kg", "60kg") o "70% 1RM" o "Máximo controlado" si bodyweight
+- "weight": SIEMPRE usar porcentaje sobre 1RM (ej: "70% 1RM", "80% 1RM", "60-65% 1RM") o "Máximo controlado" si bodyweight. NUNCA uses pesos absolutos en kg.
 - "rest": descanso entre series ("90 seg", "2 min")
 - "notes": (opcional) nota técnica breve
 
-NUNCA uses descripciones genéricas como "Ejercicios para tren superior". SIEMPRE lista ejercicios CONCRETOS con sus parámetros.`;
+NUNCA uses descripciones genéricas como "Ejercicios para tren superior". SIEMPRE lista ejercicios CONCRETOS con sus parámetros. NUNCA uses pesos absolutos, solo porcentajes sobre 1RM.`;
 
     case 'Running':
       return `
@@ -134,8 +134,8 @@ const getFormatExample = (sportType: string): string => {
   switch (sportType) {
     case 'Strength':
       return `"exercises": [
-  { "name": "Press militar con barra", "sets": 4, "reps": "8-10", "weight": "40kg", "rest": "90 seg" },
-  { "name": "Press banca plano", "sets": 4, "reps": 8, "weight": "60kg", "rest": "2 min" },
+  { "name": "Press militar con barra", "sets": 4, "reps": "8-10", "weight": "70% 1RM", "rest": "90 seg" },
+  { "name": "Press banca plano", "sets": 4, "reps": 8, "weight": "75% 1RM", "rest": "2 min" },
   { "name": "Jalón al pecho", "sets": 3, "reps": 10, "weight": "Máximo controlado", "rest": "1 min 30 s" }
 ]`;
 

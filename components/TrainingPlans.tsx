@@ -4,20 +4,76 @@ import { AppData, SportType, TrainingPlan, PlanExercise } from '../types';
 import { generateTrainingPlan } from '../services/aiService';
 import { Rocket, Plus, Trash2, Calendar, Clock, Target, ChevronRight, Loader2, Sparkles, BrainCircuit, ShieldCheck, Check } from 'lucide-react';
 
-/** Renderiza un ejercicio: soporta string (legacy) o objeto detallado { name, sets, reps, weight, rest, notes } */
-function ExerciseItem({ ex, compact = false }: { ex: string | PlanExercise; compact?: boolean }) {
+/** Renderiza un ejercicio: soporta string (legacy) o objeto detallado adaptado al tipo de deporte */
+function ExerciseItem({ ex, sportType, compact = false }: { ex: string | PlanExercise; sportType: SportType; compact?: boolean }) {
   if (typeof ex === 'string') {
     return <span className="text-[8px] font-bold bg-accent/10 text-accent px-2 py-0.5 rounded border border-accent/20">{ex}</span>;
   }
   const e = ex as PlanExercise;
-  const line = `${e.name} · ${e.sets}×${String(e.reps)} · ${e.weight || '—'} · ${e.rest || '—'}`;
+  
+  // Generar línea compacta según tipo de deporte
+  const getCompactLine = (): string => {
+    switch (sportType) {
+      case SportType.Strength:
+        return `${e.name} · ${e.sets || '—'}×${String(e.reps || '—')} · ${e.weight || '—'} · ${e.rest || '—'}`;
+      case SportType.Running:
+        return `${e.name} · ${e.distance || '—'} · ${e.pace || '—'} · ${e.rest || '—'}`;
+      case SportType.Swimming:
+        return `${e.name} · ${e.style || '—'} · ${e.distance || '—'} · ${e.intensity || '—'}`;
+      case SportType.Cycling:
+        return `${e.name} · ${e.distance || '—'} · ${e.power || '—'} · ${e.cadence || '—'}`;
+      case SportType.GroupClass:
+        return `${e.name} · ${e.duration || '—'} · ${e.intensity || '—'} · ${e.focus || '—'}`;
+      default:
+        return e.name;
+    }
+  };
+  
+  // Generar detalles según tipo de deporte
+  const getDetails = (): string => {
+    const parts: string[] = [];
+    switch (sportType) {
+      case SportType.Strength:
+        if (e.sets) parts.push(`Series: ${e.sets}`);
+        if (e.reps) parts.push(`Reps: ${String(e.reps)}`);
+        if (e.weight) parts.push(`Intensidad: ${e.weight}`);
+        if (e.rest) parts.push(`Descanso: ${e.rest}`);
+        break;
+      case SportType.Running:
+        if (e.distance) parts.push(`Distancia: ${e.distance}`);
+        if (e.pace) parts.push(`Ritmo: ${e.pace}`);
+        if (e.rest) parts.push(`Descanso: ${e.rest}`);
+        break;
+      case SportType.Swimming:
+        if (e.style) parts.push(`Estilo: ${e.style}`);
+        if (e.distance) parts.push(`Distancia: ${e.distance}`);
+        if (e.intensity) parts.push(`Intensidad: ${e.intensity}`);
+        if (e.rest) parts.push(`Descanso: ${e.rest}`);
+        break;
+      case SportType.Cycling:
+        if (e.distance) parts.push(`Distancia: ${e.distance}`);
+        if (e.power) parts.push(`Potencia: ${e.power}`);
+        if (e.cadence) parts.push(`Cadencia: ${e.cadence}`);
+        if (e.rest) parts.push(`Descanso: ${e.rest}`);
+        break;
+      case SportType.GroupClass:
+        if (e.duration) parts.push(`Duración: ${e.duration}`);
+        if (e.intensity) parts.push(`Intensidad: ${e.intensity}`);
+        if (e.focus) parts.push(`Enfoque: ${e.focus}`);
+        break;
+      default:
+        return e.name;
+    }
+    return parts.length > 0 ? parts.join(' · ') : e.name;
+  };
+  
   if (compact) {
-    return <span className="text-[8px] font-bold bg-accent/10 text-accent px-2 py-0.5 rounded border border-accent/20" title={e.notes}>{line}</span>;
+    return <span className="text-[8px] font-bold bg-accent/10 text-accent px-2 py-0.5 rounded border border-accent/20" title={e.notes}>{getCompactLine()}</span>;
   }
   return (
     <div className="text-[10px] py-1.5 px-2 bg-card-inner rounded border border-main">
       <p className="font-black text-bright uppercase">{e.name}</p>
-      <p className="text-dim">Series: {e.sets} · Reps: {String(e.reps)} · Peso: {e.weight || '—'} · Descanso: {e.rest || '—'}</p>
+      <p className="text-dim">{getDetails()}</p>
       {e.notes && <p className="text-[9px] text-dim/80 italic mt-0.5">{e.notes}</p>}
     </div>
   );
@@ -217,7 +273,7 @@ const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan, onErro
                              {session.exercises && session.exercises.length > 0 && (
                                <div className="mt-2 space-y-1">
                                  {session.exercises.map((ex: any, exIdx: number) => (
-                                   <ExerciseItem key={exIdx} ex={ex} compact />
+                                   <ExerciseItem key={exIdx} ex={ex} sportType={tempPlan.type} compact />
                                  ))}
                                </div>
                              )}
@@ -295,7 +351,7 @@ const TrainingPlans: React.FC<Props> = ({ data, onSavePlan, onDeletePlan, onErro
                                 {session.exercises && session.exercises.length > 0 && (
                                   <div className="mt-3 space-y-2">
                                     {session.exercises.map((ex: any, exIdx: number) => (
-                                      <ExerciseItem key={exIdx} ex={ex} />
+                                      <ExerciseItem key={exIdx} ex={ex} sportType={selectedPlan.type} />
                                     ))}
                                   </div>
                                 )}
