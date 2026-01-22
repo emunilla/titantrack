@@ -4,8 +4,11 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 type AIProvider = 'gemini' | 'openai' | 'auto';
 
-/** Fragmento de prompt que exige ejercicios detallados (nombre, series, reps, peso, descanso) */
-const EXERCISE_FORMAT_INSTRUCTIONS = `
+/** Instrucciones de formato adaptadas según el tipo de deporte */
+const getFormatInstructions = (sportType: string): string => {
+  switch (sportType) {
+    case 'Strength':
+      return `
 FORMATO OBLIGATORIO DE EJERCICIOS - MUY IMPORTANTE:
 Cada sesión DEBE incluir "exercises": array de OBJETOS, cada uno con:
 - "name": ejercicio concreto (ej: "Press militar con barra", "Press banca plano", "Sentadilla trasera", "Peso muerto rumano", "Jalón al pecho", "Remo con barra")
@@ -15,14 +18,160 @@ Cada sesión DEBE incluir "exercises": array de OBJETOS, cada uno con:
 - "rest": descanso entre series ("90 seg", "2 min")
 - "notes": (opcional) nota técnica breve
 
-NUNCA uses descripciones genéricas como "Ejercicios para tren superior". SIEMPRE lista ejercicios CONCRETOS con sus parámetros.
+NUNCA uses descripciones genéricas como "Ejercicios para tren superior". SIEMPRE lista ejercicios CONCRETOS con sus parámetros.`;
+
+    case 'Running':
+      return `
+FORMATO OBLIGATORIO DE SESIONES - MUY IMPORTANTE:
+Cada sesión DEBE incluir "exercises": array de OBJETOS, cada uno con:
+- "name": tipo de entrenamiento concreto (ej: "Carrera continua", "Intervalos cortos", "Intervalos largos", "Tempo run", "Fartlek", "Cuestas", "Recuperación activa")
+- "distance": distancia en km (ej: "5 km", "10 km") o tiempo (ej: "30 min", "45 min")
+- "pace": ritmo objetivo (ej: "5:00/km", "4:30/km", "Zona 2", "Zona 4")
+- "rest": descanso entre intervalos si aplica (ej: "2 min caminando", "1 min trote suave")
+- "notes": (opcional) nota técnica o de intensidad
+
+NUNCA uses descripciones genéricas. SIEMPRE especifica el tipo de entrenamiento, distancia/tiempo, ritmo e intensidad.`;
+
+    case 'Swimming':
+      return `
+FORMATO OBLIGATORIO DE SESIONES - MUY IMPORTANTE:
+Cada sesión DEBE incluir "exercises": array de OBJETOS, cada uno con:
+- "name": tipo de entrenamiento concreto (ej: "Calentamiento crol", "Series de velocidad", "Series de resistencia", "Técnica de brazada", "Series de estilo", "Enfriamiento")
+- "style": estilo de natación (ej: "Crol", "Braza", "Espalda", "Mariposa", "Combinado")
+- "distance": distancia o número de largos (ej: "200m", "4x50m", "8 largos")
+- "rest": descanso entre series (ej: "30 seg", "1 min")
+- "intensity": intensidad (ej: "Zona 2", "Zona 4", "Máximo", "Recuperación")
+- "notes": (opcional) nota técnica o de material (ej: "Con aletas", "Con palas")
+
+NUNCA uses descripciones genéricas. SIEMPRE especifica estilo, distancia, series, descanso e intensidad.`;
+
+    case 'Cycling':
+      return `
+FORMATO OBLIGATORIO DE SESIONES - MUY IMPORTANTE:
+Cada sesión DEBE incluir "exercises": array de OBJETOS, cada uno con:
+- "name": tipo de entrenamiento concreto (ej: "Rodaje suave", "Intervalos de potencia", "Subidas", "Tempo", "Recuperación activa", "Entrenamiento de cadencia")
+- "distance": distancia en km (ej: "30 km", "50 km") o tiempo (ej: "60 min", "90 min")
+- "power": potencia objetivo si aplica (ej: "Zona 2", "200W", "80% FTP")
+- "cadence": cadencia objetivo si aplica (ej: "90 rpm", "100 rpm")
+- "rest": descanso entre intervalos si aplica (ej: "5 min suave", "3 min recuperación")
+- "notes": (opcional) nota técnica o de terreno (ej: "Llano", "Montaña", "Indoor")
+
+NUNCA uses descripciones genéricas. SIEMPRE especifica tipo de entrenamiento, distancia/tiempo, potencia e intensidad.`;
+
+    case 'GroupClass':
+      return `
+FORMATO OBLIGATORIO DE SESIONES - MUY IMPORTANTE:
+Cada sesión DEBE incluir "exercises": array de OBJETOS, cada uno con:
+- "name": tipo de clase o componente concreto (ej: "Yoga Flow", "HIIT", "Pilates", "Spinning", "CrossFit WOD", "Zumba", "Body Pump")
+- "duration": duración en minutos (ej: "45 min", "60 min")
+- "intensity": intensidad (ej: "Moderada", "Alta", "Baja", "Zona 3-4")
+- "focus": enfoque de la sesión (ej: "Fuerza", "Cardio", "Flexibilidad", "Core")
+- "notes": (opcional) nota sobre la clase o ejercicios principales
+
+NUNCA uses descripciones genéricas. SIEMPRE especifica el tipo de clase, duración, intensidad y enfoque.`;
+
+    default:
+      return `
+FORMATO OBLIGATORIO DE SESIONES - MUY IMPORTANTE:
+Cada sesión DEBE incluir "exercises": array de OBJETOS con detalles específicos del tipo de entrenamiento.
+NUNCA uses descripciones genéricas. SIEMPRE especifica ejercicios, actividades o componentes CONCRETOS con sus parámetros específicos.`;
+  }
+};
+
+/** Principios fundamentales y no negociables para la generación de planes */
+const CORE_PRINCIPLES = `
+PRINCIPIOS NO NEGOCIABLES
+
+1. NO INVENTES DATOS CRÍTICOS
+- Si faltan marcas, umbrales, FTP, CSS o referencias de fuerza, prescribe por RPE, talk test o criterios subjetivos.
+- Declara explícitamente cualquier supuesto utilizado.
+
+2. SEGURIDAD Y SOSTENIBILIDAD
+- Progresiones conservadoras.
+- Evita picos de carga injustificados.
+- Señala señales de alerta y criterios de ajuste.
+
+3. REALISMO ABSOLUTO
+- Respeta estrictamente los días por semana y el tiempo por sesión.
+- No asumas sesiones dobles ni tiempo adicional.
+
+4. ESTRUCTURA FIJA DE SESIÓN
+Toda sesión debe incluir:
+- Calentamiento
+- Parte principal
+- Vuelta a la calma / movilidad
+
+PERIODIZACIÓN (OBLIGATORIA)
+
+Estructura el plan en fases claras, por ejemplo:
+- Base
+- Construcción
+- Específica
+- Puesta a punto / consolidación
+
+Para cada fase define:
+- Objetivo fisiológico principal
+- Relación volumen / intensidad
+- Tipo de sesiones predominantes
+
+Incluye:
+- Regla clara de progresión semanal
+- Criterios de descarga (deload) si el horizonte lo permite
+
+ADAPTACIÓN POR CONTEXTO
+
+HORARIO
+- Mañana: calentamiento progresivo y activación gradual.
+- Tarde: breve protocolo de reset (movilidad/respiración) previo.
+
+ENTORNO
+- Outdoor: adapta intensidad y volumen por clima, desnivel o terreno.
+- Indoor: proporciona equivalencias claras.
 `;
 
-const EXERCISE_JSON_EXAMPLE = `"exercises": [
+/** Ejemplos de formato según el tipo de deporte */
+const getFormatExample = (sportType: string): string => {
+  switch (sportType) {
+    case 'Strength':
+      return `"exercises": [
   { "name": "Press militar con barra", "sets": 4, "reps": "8-10", "weight": "40kg", "rest": "90 seg" },
   { "name": "Press banca plano", "sets": 4, "reps": 8, "weight": "60kg", "rest": "2 min" },
   { "name": "Jalón al pecho", "sets": 3, "reps": 10, "weight": "Máximo controlado", "rest": "1 min 30 s" }
 ]`;
+
+    case 'Running':
+      return `"exercises": [
+  { "name": "Calentamiento", "distance": "1 km", "pace": "Zona 1", "notes": "Trote suave" },
+  { "name": "Intervalos cortos", "distance": "6x400m", "pace": "4:00/km", "rest": "2 min caminando" },
+  { "name": "Enfriamiento", "distance": "1 km", "pace": "Zona 1", "notes": "Trote suave" }
+]`;
+
+    case 'Swimming':
+      return `"exercises": [
+  { "name": "Calentamiento crol", "style": "Crol", "distance": "200m", "intensity": "Zona 2", "rest": "30 seg" },
+  { "name": "Series de velocidad", "style": "Crol", "distance": "8x50m", "intensity": "Zona 4", "rest": "1 min" },
+  { "name": "Enfriamiento", "style": "Crol", "distance": "100m", "intensity": "Zona 1" }
+]`;
+
+    case 'Cycling':
+      return `"exercises": [
+  { "name": "Rodaje suave", "distance": "10 km", "power": "Zona 2", "cadence": "90 rpm", "notes": "Calentamiento" },
+  { "name": "Intervalos de potencia", "distance": "5x5 min", "power": "80% FTP", "rest": "3 min suave" },
+  { "name": "Enfriamiento", "distance": "10 km", "power": "Zona 1" }
+]`;
+
+    case 'GroupClass':
+      return `"exercises": [
+  { "name": "HIIT", "duration": "45 min", "intensity": "Alta", "focus": "Cardio y fuerza", "notes": "Circuito funcional" },
+  { "name": "Yoga Flow", "duration": "30 min", "intensity": "Baja", "focus": "Flexibilidad y recuperación" }
+]`;
+
+    default:
+      return `"exercises": [
+  { "name": "Actividad específica", "duration": "X min", "intensity": "X", "notes": "Detalles" }
+]`;
+  }
+};
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') {
@@ -55,14 +204,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 ATLETA: ${profile.name}, Objetivo Global: ${profile.goal}.
 
 PARÁMETROS: Deporte ${params.type}, Objetivo ${params.objective}, ${params.frequency} días/semana, ${params.timePerSession} min/sesión, Equipo: ${params.equipment}
-${EXERCISE_FORMAT_INSTRUCTIONS}
+${CORE_PRINCIPLES}
+${getFormatInstructions(params.type)}
 ${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES DEL USUARIO:\n${params.customPrompt}\n` : ''}
 
-Responde en JSON con este formato. En cada "sessions" usa ejercicios DETALLADOS como en el ejemplo:
+Responde en JSON con este formato. En cada "sessions" usa ejercicios/actividades DETALLADOS como en el ejemplo:
 {
   "durationWeeks": número 4-12,
   "overview": "descripción general",
-  "weeks": [{ "weekNumber": 1, "focus": "enfoque", "sessions": [{ "day": "Lunes", "description": "objetivo sesión", ${EXERCISE_JSON_EXAMPLE} }] }]
+  "weeks": [{ "weekNumber": 1, "focus": "enfoque", "sessions": [{ "day": "Lunes", "description": "objetivo sesión", ${getFormatExample(params.type)} }] }]
 }`;
 
         const response = await openai.chat.completions.create({
@@ -94,9 +244,10 @@ Responde en JSON con este formato. En cada "sessions" usa ejercicios DETALLADOS 
           Como experto en ciencias del deporte y entrenador personal certificado, diseña una "Misión de Entrenamiento" (Plan) personalizada.
           ATLETA: ${profile.name}, Objetivo: ${profile.goal}.
           PARÁMETROS: Deporte ${params.type}, Objetivo ${params.objective}, ${params.frequency} días/semana, ${params.timePerSession} min/sesión, Equipo: ${params.equipment}
-          ${EXERCISE_FORMAT_INSTRUCTIONS}
+          ${CORE_PRINCIPLES}
+          ${getFormatInstructions(params.type)}
           ${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES:\n${params.customPrompt}\n` : ''}
-          Duración 4-12 semanas. En cada "sessions", el array "exercises" debe contener OBJETOS con: name, sets, reps, weight, rest (y opcional notes). Ejemplo: {"name":"Press banca","sets":4,"reps":"8-10","weight":"60kg","rest":"2 min"}.
+          Duración 4-12 semanas. En cada "sessions", el array "exercises" debe contener OBJETOS con los campos específicos del tipo de deporte. Ejemplo: ${getFormatExample(params.type)}.
         `;
 
         const response = await ai.models.generateContent({
@@ -148,9 +299,10 @@ Responde en JSON con este formato. En cada "sessions" usa ejercicios DETALLADOS 
           Como experto en ciencias del deporte, diseña una "Misión de Entrenamiento" (Plan) personalizada.
           ATLETA: ${profile.name}, Objetivo: ${profile.goal}.
           PARÁMETROS: Deporte ${params.type}, Objetivo ${params.objective}, ${params.frequency} días/semana, ${params.timePerSession} min/sesión, Equipo: ${params.equipment}
-          ${EXERCISE_FORMAT_INSTRUCTIONS}
+          ${CORE_PRINCIPLES}
+          ${getFormatInstructions(params.type)}
           ${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES:\n${params.customPrompt}\n` : ''}
-          Duración 4-12 semanas. En "exercises" usa OBJETOS: name, sets, reps, weight, rest. Ej: {"name":"Press banca","sets":4,"reps":"8-10","weight":"60kg","rest":"2 min"}.
+          Duración 4-12 semanas. En "exercises" usa OBJETOS con los campos específicos del tipo de deporte. Ejemplo: ${getFormatExample(params.type)}.
         `;
 
         const response = await ai.models.generateContent({
@@ -196,9 +348,10 @@ Responde en JSON con este formato. En cada "sessions" usa ejercicios DETALLADOS 
         const prompt = `Como experto en ciencias del deporte, diseña una "Misión de Entrenamiento" (Plan) personalizada.
 ATLETA: ${profile.name}, Objetivo: ${profile.goal}.
 PARÁMETROS: Deporte ${params.type}, Objetivo ${params.objective}, ${params.frequency} días/semana, ${params.timePerSession} min/sesión, Equipo: ${params.equipment}
-${EXERCISE_FORMAT_INSTRUCTIONS}
+${CORE_PRINCIPLES}
+${getFormatInstructions(params.type)}
 ${params.customPrompt ? `\nINSTRUCCIONES ADICIONALES:\n${params.customPrompt}\n` : ''}
-Responde en JSON. En cada "sessions", "exercises" debe ser array de OBJETOS: { "name", "sets", "reps", "weight", "rest" }. Ejemplo: ${EXERCISE_JSON_EXAMPLE}`;
+Responde en JSON. En cada "sessions", "exercises" debe ser array de OBJETOS con los campos específicos del tipo de deporte. Ejemplo: ${getFormatExample(params.type)}`;
 
         const response = await openai.chat.completions.create({
           model: 'gpt-4o-mini',
